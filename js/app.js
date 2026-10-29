@@ -1,6 +1,7 @@
 import { BugEngine } from "./engine.js";
 import { NATURAL_BUGS, GENES, makeHybrid, fillGenome } from "./genome.js";
 import { renderBug } from "./bug.js";
+import { renderHero } from "./hero.js";
 
 const BASE_FREQ = 220; // A3
 const SCALE = [0, 3, 5, 7, 10, 12, 15, 17]; // минорная пентатоника
@@ -53,7 +54,7 @@ function renderSticker() {
   latin.classList.toggle("hyb", !!active.hybrid);
   $("#bug-ru").textContent = active.ru;
   $("#bug-fact").textContent = active.fact;
-  sticker.innerHTML = renderBug(active.genome);
+  sticker.innerHTML = renderHero(active) || renderBug(active.genome);
 }
 
 function renderGenes() {
@@ -94,7 +95,7 @@ function renderShelf() {
     tile.type = "button";
     tile.className = "tile";
     tile.setAttribute("aria-pressed", String(b === active));
-    tile.innerHTML = `<span class="tile-art">${renderBug(b.genome, { lite: true })}</span><span class="tile-code">${b.code}</span>`;
+    tile.innerHTML = `<span class="tile-art">${renderHero(b) || renderBug(b.genome, { lite: true })}</span><span class="tile-code">${b.code}</span>`;
     tile.addEventListener("click", () => setActive(b));
     shelf.appendChild(tile);
   }
