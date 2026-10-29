@@ -1,6 +1,10 @@
 import { geneValue, mutationLoad } from "./genome.js";
 
 const MAX_VOICES = 8;
+const SAMPLE_LEVEL = 0.9; // записи нормализованы до −20 LUFS
+const SAMPLE_REF = 440; // частота пада, на которой запись играет в исходной скорости
+const SAMPLE_PITCH = { grasshopper: 2 }; // запись с яркой полосой 7–10 кГц играем ниже, иначе она уходит за срез динамика
+export const SAMPLE_NAMES = ["longhorn", "cicada", "grasshopper", "cricket", "chorthippus"];
 
 function makeNoise(ctx) {
   const len = ctx.sampleRate * 2;
@@ -13,10 +17,12 @@ function makeNoise(ctx) {
 // Движок принимает любой AudioContext, в том числе OfflineAudioContext (для проверки без звука).
 // fx: набор строк для диагностики звука (отключают части цепи или гены), например ?fx=nocomp,nolfo
 export class BugEngine {
-  constructor(ctx, genome, fx = new Set()) {
+  constructor(ctx, bug, fx = new Set()) {
     this.ctx = ctx;
     this.fx = fx;
-    this.genome = genome;
+    this.genome = bug.genome;
+    this.samples = bug.samples || [];
+    this.buffers = new Map();
     this.voices = new Map();
     this.noiseBuf = makeNoise(ctx);
 
@@ -58,8 +64,24 @@ export class BugEngine {
     node.connect(ctx.destination);
   }
 
-  setGenome(genome) {
-    this.genome = genome;
+  setBug(bug) {
+    this.genome = bug.genome;
+    this.samples = bug.samples || [];
+  }
+
+  // Записи насекомых: грузим и декодируем один раз. Если файл не загрузился, жук играет одним синтезом.
+  async loadSamples(base = "assets/audio/") {
+    await Promise.all(
+      SAMPLE_NAMES.map(async (name) => {
+        if (this.buffers.has(name)) return;
+        try {
+          const res = await fetch(`${base}${name}.wav`);
+          if (!res.ok) return;
+          const buf = await this.ctx.decodeAudioData(await res.arrayBuffer());
+          this.buffers.set(name, buf);
+        } catch (_) {}
+      })
+    );
   }
 
   noteOn(id, freq, when) {
@@ -172,8 +194,33 @@ export class BugEngine {
     const attack = Math.max(0.008, g("attack"));
     vca.gain.setValueAtTime(0, t);
     vca.gain.setTargetAtTime(1, t, attack / 3);
-    chop.connect(vca);
+    // запись живого насекомого идёт мимо фильтра и стрекота: в ней уже есть своя фактура
+    const layers = fx.has("nosample") ? [] : this.samples.filter((smp) => this.buffers.has(smp.name));
+    const synthMix = ctx.createGain();
+    synthMix.gain.value = layers.length ? 0.4 : 1;
+    chop.connect(synthMix);
+    synthMix.connect(vca);
     vca.connect(this.out);
+    for (const smp of layers) {
+      const buf = this.buffers.get(smp.name);
+      const rate = Math.min(3, Math.max(0.25, freq / SAMPLE_REF)) / (SAMPLE_PITCH[smp.name] || 1);
+      const voiceCopy = (r, gain) => {
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        src.playbackRate.value = r;
+        const gn = ctx.createGain();
+        gn.gain.value = gain;
+        src.connect(gn);
+        gn.connect(vca);
+        // каждая нота начинает запись с другого места, повторы не звучат одинаково
+        src.start(t, Math.random() * buf.duration);
+        stop.push(src);
+      };
+      voiceCopy(rate * (1 + jitter() * load * 0.2), SAMPLE_LEVEL * smp.w);
+      // у мутантов к записи добавляется вторая копия, расстроенная и неровная
+      if (load > 0.05) voiceCopy(rate * (1.19 + jitter() * 0.12), SAMPLE_LEVEL * smp.w * load * 0.7);
+    }
 
     for (const n of [saw, sq, mod, lfo, mod2].filter(Boolean)) {
       n.start(t);

@@ -55,69 +55,91 @@ export function mutationLoad(genome) {
   return clamp01((sum / 6) * 1.8);
 }
 
-// Cerambyx cerdo — первый жук серии
+// Пять жуков. Звук каждого: запись живого насекомого (samples) плюс синтезированный тон (genome), чтобы на падах была высота.
+// Источники и лицензии записей перечислены в README и на странице. w — вес записи в миксе.
+const body = (o) => ({ eyes: 0.33, extraLegs: 0.35, tumors: 0, tendrils: 0, mandibles: 0.35, asym: 0.05, wet: 0.15, exposed: 0, ...o });
+
 export const BUG_01 = {
   id: "bug-01",
   code: "BUG-01",
-  latin: "Cerambyx cerdo",
-  ru: "большой дубовый усач",
+  latin: "Acalolepta rusticator",
+  ru: "усач (сем. Cerambycidae)",
   fact:
-    "Многие усачи (Cerambycidae) скрипят: потирают переднегрудь о среднегрудь. " +
-    "Звук здесь — синтетическая интерпретация, а не запись насекомого.",
+    "Многие усачи скрипят: потирают переднегрудь о среднегрудь. " +
+    "Основа звука здесь — запись этого вида (BioAcoustica, CC BY 3.0), поверх неё синтезированный тон.",
+  samples: [{ name: "longhorn", w: 1 }],
   genome: {
-    wave: 0.2,
-    fmRatio: 0.45,
-    fmDepth: 0.22,
-    cutoff: 0.5,
-    resonance: 0.45,
-    noise: 0.28,
-    pulseRate: 0.55,
-    pulseDepth: 0.75,
-    attack: 0.25,
-    release: 0.45,
-    eyes: 0.33,
-    extraLegs: 0.35,
-    tumors: 0,
-    tendrils: 0,
-    mandibles: 0.35,
-    asym: 0.05,
-    wet: 0.15,
-    exposed: 0,
+    wave: 0.2, fmRatio: 0.45, fmDepth: 0.22, cutoff: 0.5, resonance: 0.45,
+    noise: 0.28, pulseRate: 0.55, pulseDepth: 0.75, attack: 0.25, release: 0.45,
+    ...body({}),
   },
 };
 
-// Xestobium rufovillosum — второй жук. Стучит головой по дереву: короткая атака, быстрое затухание.
 export const BUG_02 = {
   id: "bug-02",
   code: "BUG-02",
-  latin: "Xestobium rufovillosum",
-  ru: "жук-точильщик",
+  latin: "Amphipsalta zelandica",
+  ru: "новозеландская хоровая цикада",
   fact:
-    "Точильщик стучит головой по дереву, подзывая партнёра, — отсюда английское death-watch beetle. " +
-    "Звук здесь — синтетическая интерпретация, а не запись насекомого.",
+    "Цикады поют тимбалами: ребристыми мембранами на брюшке, которые щёлкают под мышцами. " +
+    "В записи (общественное достояние, Новая Зеландия) цикада издаёт сигнал «в тревоге», когда её держат в руке.",
+  samples: [{ name: "cicada", w: 1 }],
   genome: {
-    wave: 0.8,
-    fmRatio: 0.7,
-    fmDepth: 0.55,
-    cutoff: 0.3,
-    resonance: 0.75,
-    noise: 0.55,
-    pulseRate: 0.15,
-    pulseDepth: 0.95,
-    attack: 0.02,
-    release: 0.15,
-    eyes: 0.33,
-    extraLegs: 0.55,
-    tumors: 0,
-    tendrils: 0,
-    mandibles: 0.5,
-    asym: 0.1,
-    wet: 0.2,
-    exposed: 0,
+    wave: 0.6, fmRatio: 0.8, fmDepth: 0.3, cutoff: 0.8, resonance: 0.3,
+    noise: 0.1, pulseRate: 0.75, pulseDepth: 0.9, attack: 0.1, release: 0.35,
+    ...body({ extraLegs: 0.5, asym: 0.1, wet: 0.2, mandibles: 0.3 }),
   },
 };
 
-export const NATURAL_BUGS = [BUG_01, BUG_02];
+export const BUG_03 = {
+  id: "bug-03",
+  code: "BUG-03",
+  latin: "Tettigoniidae",
+  ru: "кустарниковый кузнечик",
+  fact:
+    "Поют самцы: трут одно надкрылье о другое. Запись сделана в Южной Финляндии в июле 2007 " +
+    "(общественное достояние), здесь оставлена только полоса насекомого, без птиц и колокола, слышных в оригинале.",
+  samples: [{ name: "grasshopper", w: 1 }],
+  genome: {
+    wave: 0.5, fmRatio: 0.6, fmDepth: 0.2, cutoff: 0.7, resonance: 0.4,
+    noise: 0.35, pulseRate: 0.85, pulseDepth: 0.8, attack: 0.05, release: 0.2,
+    ...body({ extraLegs: 0.4, asym: 0.08, mandibles: 0.4 }),
+  },
+};
+
+export const BUG_04 = {
+  id: "bug-04",
+  code: "BUG-04",
+  latin: "Gryllus campestris",
+  ru: "полевой сверчок",
+  fact:
+    "Самцы поют, потирая надкрылья друг о друга: на одном есть жилка-«смычок», на другом ребристая жилка. " +
+    "Запись: BioAcoustica, CC BY 3.0.",
+  samples: [{ name: "cricket", w: 1 }],
+  genome: {
+    wave: 0.05, fmRatio: 0.5, fmDepth: 0.15, cutoff: 0.6, resonance: 0.6,
+    noise: 0.1, pulseRate: 0.6, pulseDepth: 0.95, attack: 0.01, release: 0.12,
+    ...body({ extraLegs: 0.3, asym: 0.05, mandibles: 0.45 }),
+  },
+};
+
+export const BUG_05 = {
+  id: "bug-05",
+  code: "BUG-05",
+  latin: "Chorthippus albomarginatus",
+  ru: "конёк (саранчовые)",
+  fact:
+    "Коньки стрекочут, потирая задним бедром о надкрылье: бедро несёт ряд зубчиков. " +
+    "Запись: Музей естественной истории, Лондон, через BioAcoustica, CC BY 3.0.",
+  samples: [{ name: "chorthippus", w: 1 }],
+  genome: {
+    wave: 0.35, fmRatio: 0.55, fmDepth: 0.25, cutoff: 0.55, resonance: 0.5,
+    noise: 0.4, pulseRate: 0.7, pulseDepth: 0.7, attack: 0.04, release: 0.18,
+    ...body({ extraLegs: 0.45, asym: 0.12, mandibles: 0.4 }),
+  },
+};
+
+export const NATURAL_BUGS = [BUG_01, BUG_02, BUG_03, BUG_04, BUG_05];
 
 // Гауссов шум (Бокс — Мюллер)
 function gauss(rng) {
@@ -141,7 +163,19 @@ export function crossGenomes(a, b, rng = Math.random, mutation = 0.05) {
   return child;
 }
 
+// Смесь записей: родитель A берётся с весом 1 − t, родитель B с весом t; одинаковые записи складываются.
+export function mixSamples(a, b, t) {
+  const acc = new Map();
+  for (const [list, k] of [[a.samples || [], 1 - t], [b.samples || [], t]]) {
+    for (const s of list) acc.set(s.name, (acc.get(s.name) || 0) + s.w * k);
+  }
+  const out = [...acc].map(([name, w]) => ({ name, w })).filter((s) => s.w >= 0.08);
+  const sum = out.reduce((x, s) => x + s.w, 0) || 1;
+  return out.map((s) => ({ name: s.name, w: s.w / sum }));
+}
+
 export function makeHybrid(a, b, number, rng = Math.random) {
+  const t = 0.3 + rng() * 0.4;
   return {
     id: `hyb-${number}`,
     code: `HYB-${String(number).padStart(2, "0")}`,
@@ -153,6 +187,7 @@ export function makeHybrid(a, b, number, rng = Math.random) {
       "Каждый ген достаётся от одного из родителей или усредняется, плюс небольшая мутация. " +
       "Гены тела мутируют только в худшую сторону, и звук от этого грязнее.",
     parents: [a.id, b.id],
+    samples: mixSamples(a, b, t),
     genome: crossGenomes(a.genome, b.genome, rng),
   };
 }

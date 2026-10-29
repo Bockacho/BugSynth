@@ -31,7 +31,8 @@ function loadHybrids() {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     // гибриды, сохранённые до появления генов тела, достраиваем нулями
     return raw
-      .filter((h) => h && h.id && h.genome && typeof h.genome === "object")
+      // гибриды прототипа без записей звучали одним синтезом, их не переносим
+      .filter((h) => h && h.id && h.genome && typeof h.genome === "object" && Array.isArray(h.samples))
       .map((h) => ({ ...h, genome: fillGenome(h.genome) }))
       .slice(0, MAX_HYBRIDS);
   } catch (_) {
@@ -120,7 +121,7 @@ function renderActions() {
 
 function setActive(bug) {
   active = bug;
-  engine?.setGenome(bug.genome);
+  engine?.setBug(bug);
   renderSticker();
   renderGenes();
   renderShelf();
@@ -162,10 +163,12 @@ function unlockAudioSession() {
 async function ensureAudio() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
-    engine = new BugEngine(ctx, active.genome, FX);
+    engine = new BugEngine(ctx, active, FX);
     unlockAudioSession();
   }
   if (ctx.state !== "running") await ctx.resume();
+  if (!engine.loading) engine.loading = engine.loadSamples();
+  await engine.loading;
 }
 
 const freqOf = (i) => BASE_FREQ * Math.pow(2, (SCALE[i] + octave * 12) / 12);
@@ -258,7 +261,7 @@ $("#breed").addEventListener("click", breed);
 function stopCompare() {
   compareTimers.forEach(clearTimeout);
   compareTimers = [];
-  engine?.setGenome(active.genome);
+  engine?.setBug(active);
 }
 
 async function compare() {
@@ -280,7 +283,7 @@ async function compare() {
       const on = k * phase + j * step;
       compareTimers.push(
         setTimeout(() => {
-          engine.setGenome(bug.genome);
+          engine.setBug(bug);
           engine.noteOn(id, freqOf(n));
         }, on)
       );
@@ -289,7 +292,7 @@ async function compare() {
   });
   compareTimers.push(
     setTimeout(() => {
-      engine.setGenome(active.genome);
+      engine.setBug(active);
       status.textContent = "";
     }, order.length * phase)
   );
