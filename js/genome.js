@@ -76,13 +76,13 @@ export const BUG_01 = {
     attack: 0.25,
     release: 0.45,
     eyes: 0.33,
-    extraLegs: 0,
+    extraLegs: 0.35,
     tumors: 0,
     tendrils: 0,
     mandibles: 0.35,
     asym: 0.05,
-    wet: 0.35,
-    exposed: 0.15,
+    wet: 0.15,
+    exposed: 0,
   },
 };
 
@@ -107,13 +107,13 @@ export const BUG_02 = {
     attack: 0.02,
     release: 0.15,
     eyes: 0.33,
-    extraLegs: 0,
+    extraLegs: 0.55,
     tumors: 0,
     tendrils: 0,
     mandibles: 0.5,
     asym: 0.1,
-    wet: 0.5,
-    exposed: 0.3,
+    wet: 0.2,
+    exposed: 0,
   },
 };
 

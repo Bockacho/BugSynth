@@ -373,19 +373,19 @@ export function renderBug(genome, { lite = false } = {}) {
 
   // глаза
   const eye = (ex, ey, er) => {
-    const lid = `M${f(ex - er)} ${f(ey - er * 0.1)} Q ${f(ex)} ${f(ey - er * 1.5)} ${f(ex + er)} ${f(ey - er * 0.1)} Q ${f(ex)} ${f(ey - er * 0.55)} ${f(ex - er)} ${f(ey - er * 0.1)} Z`;
     let veinsEye = "";
-    for (let k = 0; k < 3; k++) {
+    for (let k = 0; k < 7; k++) {
       const a = r(0, Math.PI * 2);
       veinsEye += `<path d="M${f(ex + Math.cos(a) * er)} ${f(ey + Math.sin(a) * er)} L${f(ex + Math.cos(a) * er * 0.45)} ${f(ey + Math.sin(a) * er * 0.45)}" stroke="#a3242c" stroke-width="${f(Math.max(0.5, er * 0.1))}" stroke-linecap="round"/>`;
     }
+    // без век и ресниц: вздутый, воспалённый глаз в тёмной впадине, зрачок-щель
     return (
-      `<g><circle cx="${f(ex)}" cy="${f(ey)}" r="${f(er)}" fill="#cfae93" stroke="#4a1a20" stroke-width="${f(Math.max(0.8, er * 0.2))}"/>` +
+      `<g><circle cx="${f(ex)}" cy="${f(ey)}" r="${f(er * 1.28)}" fill="#2a0a10" fill-opacity=".85"/>` +
+      `<circle cx="${f(ex)}" cy="${f(ey)}" r="${f(er)}" fill="#c9a08a" stroke="#3a0d14" stroke-width="${f(Math.max(0.8, er * 0.2))}"/>` +
       veinsEye +
-      `<circle cx="${f(ex)}" cy="${f(ey)}" r="${f(er * 0.62)}" fill="#a87a2c"/>` +
-      `<ellipse cx="${f(ex)}" cy="${f(ey)}" rx="${f(er * 0.17)}" ry="${f(er * 0.58)}" fill="#0b0405"/>` +
-      `<path d="${lid}" fill="#5c2229" stroke="#2a0b0e" stroke-width="${f(Math.max(0.6, er * 0.12))}"/>` +
-      `<circle cx="${f(ex - er * 0.3)}" cy="${f(ey - er * 0.15)}" r="${f(er * 0.16)}" fill="#fff" fill-opacity=".85"/></g>`
+      `<circle cx="${f(ex + er * 0.1)}" cy="${f(ey + er * 0.08)}" r="${f(er * 0.6)}" fill="#8a5a1c"/>` +
+      `<ellipse cx="${f(ex + er * 0.1)}" cy="${f(ey + er * 0.08)}" rx="${f(er * 0.12)}" ry="${f(er * 0.56)}" fill="#050203"/>` +
+      `<circle cx="${f(ex - er * 0.28)}" cy="${f(ey - er * 0.3)}" r="${f(er * 0.11)}" fill="#fff" fill-opacity=".7"/></g>`
     );
   };
   const eyeCount = n("eyes", 6);
