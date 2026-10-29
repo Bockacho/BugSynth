@@ -19,10 +19,34 @@ export class BugEngine {
     this.noiseBuf = makeNoise(ctx);
 
     this.out = ctx.createGain();
-    this.out.gain.value = 0.4;
+    this.out.gain.value = 0.5;
+    // мягкий срез верха: без него резкие гармоники пилы и FM «колются» на динамике телефона
+    this.tone = ctx.createBiquadFilter();
+    this.tone.type = "lowpass";
+    this.tone.frequency.value = 5500;
+    this.tone.Q.value = 0.5;
+    // компрессор с настройками по умолчанию (12:1) «дышит» и хрустит на частых нотах, поэтому мягче
     this.limiter = ctx.createDynamicsCompressor();
-    this.out.connect(this.limiter);
-    this.limiter.connect(ctx.destination);
+    this.limiter.threshold.value = -14;
+    this.limiter.knee.value = 24;
+    this.limiter.ratio.value = 3;
+    this.limiter.attack.value = 0.01;
+    this.limiter.release.value = 0.2;
+    // страховка: плавное насыщение tanh вместо жёсткого обрезания, уровень никогда не выше 1
+    // WaveShaper видит вход только в диапазоне −1..1, поэтому сигнал ослаблен втрое, а кривая tanh(3x) усиливает его обратно:
+    // для малых уровней проход без изменений, для больших плавное насыщение.
+    this.pre = ctx.createGain();
+    this.pre.gain.value = 1 / 3;
+    this.clip = ctx.createWaveShaper();
+    const curve = new Float32Array(2048);
+    for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh((i / (curve.length - 1)) * 6 - 3);
+    this.clip.curve = curve;
+    this.clip.oversample = "2x";
+    this.out.connect(this.tone);
+    this.tone.connect(this.limiter);
+    this.limiter.connect(this.pre);
+    this.pre.connect(this.clip);
+    this.clip.connect(ctx.destination);
   }
 
   setGenome(genome) {
@@ -59,7 +83,7 @@ export class BugEngine {
     mod.type = "sine";
     mod.frequency.value = freq * g("fmRatio");
     const modGain = ctx.createGain();
-    modGain.gain.value = g("fmDepth") * freq * 2.5;
+    modGain.gain.value = g("fmDepth") * freq * 1.6;
     mod.connect(modGain);
     modGain.connect(saw.frequency);
     modGain.connect(sq.frequency);
@@ -69,35 +93,44 @@ export class BugEngine {
     noise.buffer = this.noiseBuf;
     noise.loop = true;
     const noiseGain = ctx.createGain();
-    noiseGain.gain.value = 0.35 * g("noise");
+    noiseGain.gain.value = 0.25 * g("noise");
     noise.connect(noiseGain);
 
     // фильтр следует за нотой
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = Math.min(16000, Math.max(80, freq * (1.5 + g("cutoff") * 12)));
-    filter.Q.value = 0.7 + g("resonance") * 12;
+    filter.frequency.value = Math.min(16000, Math.max(80, freq * (1.5 + g("cutoff") * 9)));
+    filter.Q.value = 0.7 + g("resonance") * 7;
     sawGain.connect(filter);
     sqGain.connect(filter);
     noiseGain.connect(filter);
 
-    // «стрекот»: громкость рубится квадратным LFO, как при трении ребристых поверхностей
+    // «стрекот»: громкость рубится LFO, как при трении ребристых поверхностей.
+    // Квадрат пропущен через фильтр: перепады сглажены на несколько миллисекунд, иначе каждый даёт щелчок.
     const depth = g("pulseDepth");
+    const rate = g("pulseRate");
     const chop = ctx.createGain();
     chop.gain.value = 1 - depth / 2;
     const lfo = ctx.createOscillator();
     lfo.type = "square";
-    lfo.frequency.value = g("pulseRate");
+    lfo.frequency.value = rate;
+    const lfoSmooth = ctx.createBiquadFilter();
+    lfoSmooth.type = "lowpass";
+    lfoSmooth.frequency.value = Math.min(300, Math.max(40, rate * 4));
+    lfoSmooth.Q.value = 0.5;
     const lfoGain = ctx.createGain();
     lfoGain.gain.value = depth / 2;
-    lfo.connect(lfoGain);
+    lfo.connect(lfoSmooth);
+    lfoSmooth.connect(lfoGain);
     lfoGain.connect(chop.gain);
     filter.connect(chop);
 
     // огибающая
     const vca = ctx.createGain();
+    // атака не короче 8 мс: более резкий старт даёт щелчок
+    const attack = Math.max(0.008, g("attack"));
     vca.gain.setValueAtTime(0, t);
-    vca.gain.linearRampToValueAtTime(1, t + g("attack"));
+    vca.gain.setTargetAtTime(1, t, attack / 3);
     chop.connect(vca);
     vca.connect(this.out);
 
@@ -108,7 +141,7 @@ export class BugEngine {
     noise.start(t, Math.random() * 1.5);
     stop.push(noise);
 
-    this.voices.set(id, { vca, stop, release: g("release") });
+    this.voices.set(id, { vca, stop, release: Math.max(0.06, g("release")) });
   }
 
   noteOff(id, when) {
@@ -116,13 +149,13 @@ export class BugEngine {
     if (!v) return;
     this.voices.delete(id);
     const t = when ?? this.ctx.currentTime;
-    if (when === undefined) {
-      // отпускание «сейчас»: фиксируем текущую громкость, чтобы не было щелчка
-      v.vca.gain.cancelScheduledValues(t);
-      v.vca.gain.setValueAtTime(v.vca.gain.value, t);
-    }
-    v.vca.gain.setTargetAtTime(0, t, v.release / 4);
-    const end = t + v.release + 0.1;
+    // gain.value читать нельзя: в Safari оно бывает устаревшим. Отменяем запланированное и
+    // продолжаем кривую атаки с того места, где она сейчас: по спецификации setTargetAtTime
+    // стартует от значения предыдущего события в момент t.
+    v.vca.gain.cancelScheduledValues(t);
+    v.vca.gain.setTargetAtTime(0, t, v.release / 5);
+    // останавливаем осцилляторы, когда голос затих почти до нуля (около −65 дБ), чтобы не было щелчка
+    const end = t + v.release * 1.6 + 0.05;
     for (const n of v.stop) n.stop(end);
   }
 
