@@ -1,5 +1,5 @@
 import { BugEngine } from "./engine.js";
-import { NATURAL_BUGS, GENES, makeHybrid } from "./genome.js";
+import { NATURAL_BUGS, GENES, makeHybrid, fillGenome } from "./genome.js";
 import { renderBug } from "./bug.js";
 
 const BASE_FREQ = 220; // A3
@@ -7,6 +7,9 @@ const SCALE = [0, 3, 5, 7, 10, 12, 15, 17]; // минорная пентатон
 const KEYS = ["a", "s", "d", "f", "g", "h", "j", "k"];
 const STORAGE_KEY = "bugsynth.hybrids";
 const MAX_HYBRIDS = 12;
+
+// диагностика звука: ?fx=nocomp,noclip,notone,nolfo,nofm,nonoise,noreso,slow
+const FX = new Set((new URLSearchParams(location.search).get("fx") || "").split(",").filter(Boolean));
 
 let ctx = null;
 let engine = null;
@@ -26,8 +29,10 @@ const byId = (id) => allBugs().find((b) => b.id === id);
 function loadHybrids() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    // гибриды, сохранённые до появления генов тела, достраиваем нулями
     return raw
-      .filter((h) => h && h.id && h.genome && GENES.every((g) => typeof h.genome[g.id] === "number"))
+      .filter((h) => h && h.id && h.genome && typeof h.genome === "object")
+      .map((h) => ({ ...h, genome: fillGenome(h.genome) }))
       .slice(0, MAX_HYBRIDS);
   } catch (_) {
     return [];
@@ -55,7 +60,16 @@ function renderGenes() {
   const hasParents = parents.length === 2 && parents.every(Boolean);
   const el = $("#genes");
   el.innerHTML = "";
+  const groups = { sound: "Звук", body: "Тело" };
+  let lastKind = null;
   for (const gene of GENES) {
+    if (gene.kind !== lastKind) {
+      lastKind = gene.kind;
+      const head = document.createElement("div");
+      head.className = "gene-group";
+      head.textContent = groups[gene.kind];
+      el.appendChild(head);
+    }
     const pct = (x) => `${Math.round(x * 100)}%`;
     const ticks = hasParents
       ? `<b class="tick a" style="left:${pct(parents[0].genome[gene.id])}">A</b>` +
@@ -79,7 +93,7 @@ function renderShelf() {
     tile.type = "button";
     tile.className = "tile";
     tile.setAttribute("aria-pressed", String(b === active));
-    tile.innerHTML = `<span class="tile-art">${renderBug(b.genome)}</span><span class="tile-code">${b.code}</span>`;
+    tile.innerHTML = `<span class="tile-art">${renderBug(b.genome, { lite: true })}</span><span class="tile-code">${b.code}</span>`;
     tile.addEventListener("click", () => setActive(b));
     shelf.appendChild(tile);
   }
@@ -148,7 +162,7 @@ function unlockAudioSession() {
 async function ensureAudio() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
-    engine = new BugEngine(ctx, active.genome);
+    engine = new BugEngine(ctx, active.genome, FX);
     unlockAudioSession();
   }
   if (ctx.state !== "running") await ctx.resume();
@@ -292,5 +306,6 @@ $("#reset").addEventListener("click", () => {
 });
 
 // --- старт ---
+if (FX.size) status.textContent = `Диагностика звука: ${[...FX].join(", ")}`;
 renderParentSelects();
 setActive(active);

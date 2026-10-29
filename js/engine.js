@@ -1,4 +1,4 @@
-import { geneValue } from "./genome.js";
+import { geneValue, mutationLoad } from "./genome.js";
 
 const MAX_VOICES = 8;
 
@@ -11,9 +11,11 @@ function makeNoise(ctx) {
 }
 
 // Движок принимает любой AudioContext, в том числе OfflineAudioContext (для проверки без звука).
+// fx: набор строк для диагностики звука (отключают части цепи или гены), например ?fx=nocomp,nolfo
 export class BugEngine {
-  constructor(ctx, genome) {
+  constructor(ctx, genome, fx = new Set()) {
     this.ctx = ctx;
+    this.fx = fx;
     this.genome = genome;
     this.voices = new Map();
     this.noiseBuf = makeNoise(ctx);
@@ -42,11 +44,18 @@ export class BugEngine {
     for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh((i / (curve.length - 1)) * 6 - 3);
     this.clip.curve = curve;
     this.clip.oversample = "2x";
-    this.out.connect(this.tone);
-    this.tone.connect(this.limiter);
-    this.limiter.connect(this.pre);
-    this.pre.connect(this.clip);
-    this.clip.connect(ctx.destination);
+    let node = this.out;
+    const link = (n) => {
+      node.connect(n);
+      node = n;
+    };
+    if (!fx.has("notone")) link(this.tone);
+    if (!fx.has("nocomp")) link(this.limiter);
+    if (!fx.has("noclip")) {
+      link(this.pre);
+      link(this.clip);
+    }
+    node.connect(ctx.destination);
   }
 
   setGenome(genome) {
@@ -58,9 +67,24 @@ export class BugEngine {
     if (this.voices.size >= MAX_VOICES) this.noteOff(this.voices.keys().next().value);
 
     const ctx = this.ctx;
-    const g = (k) => geneValue(this.genome, k);
+    const fx = this.fx;
+    const override = {
+      pulseDepth: fx.has("nolfo") ? 0 : undefined,
+      fmDepth: fx.has("nofm") ? 0 : undefined,
+      noise: fx.has("nonoise") ? 0 : undefined,
+      resonance: fx.has("noreso") ? 0 : undefined,
+      release: fx.has("slow") ? 0.8 : undefined,
+    };
+    const g = (k) => {
+      if (override[k] !== undefined) return k === "release" ? override[k] : 0;
+      return geneValue(this.genome, k);
+    };
     const t = when ?? ctx.currentTime;
     const stop = [];
+
+    // груз мутаций (0..1): тело гибрида делает звук грязнее. У обычных жуков около нуля, звук не меняется.
+    const load = fx.has("nomut") ? 0 : mutationLoad(this.genome);
+    const jitter = () => Math.random() - 0.5;
 
     const wave = g("wave");
 
@@ -68,9 +92,12 @@ export class BugEngine {
     const saw = ctx.createOscillator();
     saw.type = "sawtooth";
     saw.frequency.value = freq;
+    // осцилляторы разъезжаются по высоте, у каждой ноты по-разному
+    saw.detune.value = jitter() * load * 40;
     const sq = ctx.createOscillator();
     sq.type = "square";
     sq.frequency.value = freq;
+    sq.detune.value = jitter() * load * 40;
     const sawGain = ctx.createGain();
     sawGain.gain.value = 0.5 * (1 - wave);
     const sqGain = ctx.createGain();
@@ -81,19 +108,33 @@ export class BugEngine {
     // FM: синусоида модулирует частоту обоих осцилляторов
     const mod = ctx.createOscillator();
     mod.type = "sine";
-    mod.frequency.value = freq * g("fmRatio");
+    // отношение FM каждый раз чуть плывёт: «неровный» FM
+    mod.frequency.value = freq * g("fmRatio") * (1 + jitter() * load * 0.3);
     const modGain = ctx.createGain();
     modGain.gain.value = g("fmDepth") * freq * 1.6;
     mod.connect(modGain);
     modGain.connect(saw.frequency);
     modGain.connect(sq.frequency);
 
+    // у мутантов второй, слегка расстроенный FM-модулятор
+    let mod2 = null;
+    if (load > 0.02) {
+      mod2 = ctx.createOscillator();
+      mod2.type = "sine";
+      mod2.frequency.value = freq * g("fmRatio") * (1.03 + load * 0.1);
+      const mod2Gain = ctx.createGain();
+      mod2Gain.gain.value = load * freq * 1.0;
+      mod2.connect(mod2Gain);
+      mod2Gain.connect(saw.frequency);
+      mod2Gain.connect(sq.frequency);
+    }
+
     // шум
     const noise = ctx.createBufferSource();
     noise.buffer = this.noiseBuf;
     noise.loop = true;
     const noiseGain = ctx.createGain();
-    noiseGain.gain.value = 0.25 * g("noise");
+    noiseGain.gain.value = 0.25 * Math.min(1, g("noise") + load * 0.6);
     noise.connect(noiseGain);
 
     // фильтр следует за нотой
@@ -108,7 +149,7 @@ export class BugEngine {
     // «стрекот»: громкость рубится LFO, как при трении ребристых поверхностей.
     // Квадрат пропущен через фильтр: перепады сглажены на несколько миллисекунд, иначе каждый даёт щелчок.
     const depth = g("pulseDepth");
-    const rate = g("pulseRate");
+    const rate = g("pulseRate") * (1 + jitter() * load * 0.4);
     const chop = ctx.createGain();
     chop.gain.value = 1 - depth / 2;
     const lfo = ctx.createOscillator();
@@ -134,7 +175,7 @@ export class BugEngine {
     chop.connect(vca);
     vca.connect(this.out);
 
-    for (const n of [saw, sq, mod, lfo]) {
+    for (const n of [saw, sq, mod, lfo, mod2].filter(Boolean)) {
       n.start(t);
       stop.push(n);
     }
