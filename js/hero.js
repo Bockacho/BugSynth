@@ -63,7 +63,10 @@ function seamPoints(seed) {
   return pts;
 }
 
-// Один слой-стадия: у одного вида просто картинка, у гибрида две половины со швом.
+// Один слой-стадия: у одного вида просто картинка, у гибрида две половины срастаются.
+// Раньше шов рисовался линией и пунктиром поверх фото — на фоне фотореалистичных органов это
+// читалось как мультяшная наклейка. Вместо линии — размытый край половины: два вида перетекают
+// друг в друга мягкой фотографической растяжкой, без единого штриха, нарисованного кодом.
 function stageGroup(bug, sp, stage, id, suf = "") {
   if (sp[0] === sp[1]) return img(sp[0], STAGES[stage], suf);
   const seed = [...bug.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
@@ -71,27 +74,14 @@ function stageGroup(bug, sp, stage, id, suf = "") {
   const line = pts.map(([x, y]) => `${x.toFixed(1)} ${y}`).join(" L");
   const left = `M0 0 L${line} L0 ${H} Z`;
   const right = `M${W} 0 L${line} L${W} ${H} Z`;
-  const stitches = pts
-    .slice(0, -1)
-    .map(([x, y], i) => {
-      const [x2, y2] = pts[i + 1];
-      const mx = (x + x2) / 2;
-      const my = (y + y2) / 2;
-      return `<path d="M${(mx - 9).toFixed(1)} ${my.toFixed(1)} L${(mx + 9).toFixed(1)} ${(my + 2).toFixed(1)}" stroke="#1a0b08" stroke-width="3" stroke-linecap="round"/>`;
-    })
-    .join("");
-  const halves = `<g clip-path="url(#${id}l)">${img(sp[0], STAGES[stage], suf)}</g><g clip-path="url(#${id}r)">${img(sp[1], STAGES[stage], suf)}</g>`;
-  // маска из силуэта жука (непрозрачное → белое): шов рисуется только по телу, а не по пустому месту
   return (
-    `<defs><clipPath id="${id}l"><path d="${left}"/></clipPath><clipPath id="${id}r"><path d="${right}"/></clipPath>` +
-    `<filter id="${id}f" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"/></filter>` +
-    `<mask id="${id}m" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><g filter="url(#${id}f)">${halves}</g></mask></defs>` +
-    halves +
-    `<g mask="url(#${id}m)">` +
-    `<path d="M${line}" fill="none" stroke="#d9a99a" stroke-opacity=".75" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>` +
-    `<path d="M${line}" fill="none" stroke="#3a1612" stroke-width="2" stroke-linejoin="round"/>` +
-    stitches +
-    `</g>`
+    `<defs>` +
+    `<filter id="${id}bl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="15"/></filter>` +
+    `<mask id="${id}l" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><path d="${left}" fill="#fff" filter="url(#${id}bl)"/></mask>` +
+    `<mask id="${id}r" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><path d="${right}" fill="#fff" filter="url(#${id}bl)"/></mask>` +
+    `</defs>` +
+    `<g mask="url(#${id}l)">${img(sp[0], STAGES[stage], suf)}</g>` +
+    `<g mask="url(#${id}r)">${img(sp[1], STAGES[stage], suf)}</g>`
   );
 }
 
