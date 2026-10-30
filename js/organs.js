@@ -13,19 +13,20 @@ const GRADIENTS = `
   <radialGradient id="og-eye" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#f4ecd8"/><stop offset=".7" stop-color="#cdb99a"/><stop offset="1" stop-color="#7a5a46"/></radialGradient>`;
 
 // toggle: орган-переключатель (касание), остальные тянутся
-// name и hint показываются в плашках: при касании органа и на экране «Как играть»
+// name и hint показываются в плашках: при касании органа и на экране «Как играть».
+// Названия в виде «по-русски / English»: английские слова привычны музыкантам.
 export const ORGANS = [
-  { id: "pitch", name: "Питч", hint: "Высота звука. Тяни вверх: выше, вниз: ниже.", anchor: "legL", r: 22, kind: "bronze" },
-  { id: "trill", name: "Стрекот", hint: "Дрожание громкости: от ровного звука до быстрого треска.", anchor: "legR", r: 22, kind: "olive" },
-  { id: "glide", name: "Скольжение", hint: "Насколько лениво высота доезжает до новой ноты.", anchor: "hindL", r: 22, kind: "bronze" },
-  { id: "scrub", name: "Скраб", hint: "Игла по записи: выбираешь, какой кусок насекомого звучит.", anchor: "hindR", r: 22, kind: "raw" },
-  { id: "filter", name: "Рот", hint: "Фильтр. Закрыт: звук глухой, открыт: яркий.", anchor: "head", r: 22, kind: "mouth" },
-  { id: "env", name: "Неохота", hint: "Жук неохотно включается и долго затихает.", anchor: "antenna", r: 20, kind: "mouth" },
-  { id: "dist", name: "Грязь", hint: "Искажение. Чем выше, тем грязнее звук и тем сильнее мутирует тело.", anchor: "thorax", r: 24, kind: "raw" },
-  { id: "detune", name: "Второй жук", hint: "Расстройка: внутри звучит ещё одна копия, чуть выше и чуть ниже.", anchor: "flankL", r: 22, kind: "olive" },
-  { id: "latch", name: "Зажим", hint: "Нажми на глаз на правом крыле (не на глаза у головы): звук держится без пальца. Нажми на тело ещё раз: тишина.", anchor: "flankR", r: 20, kind: "eye", toggle: true },
-  { id: "reverb", name: "Эхо", hint: "Реверберация. Брюхо набухает, звук растягивается в пространство.", anchor: "belly", r: 28, kind: "sac" },
-  { id: "delay", name: "Повтор", hint: "Эхо-повторы: жук повторяет сам себя, повторы затухают.", anchor: "tail", r: 22, kind: "sac" },
+  { id: "pitch", name: "Питч / Pitch", hint: "Высота звука. Тяни вверх: выше, вниз: ниже.", anchor: "legL", r: 22, kind: "bronze" },
+  { id: "trill", name: "Стрекот / Tremolo", hint: "Дрожание громкости: от ровного звука до быстрого треска.", anchor: "legR", r: 22, kind: "olive" },
+  { id: "glide", name: "Скольжение / Glide", hint: "Как плавно высота доезжает до новой ноты.", anchor: "hindL", r: 22, kind: "bronze" },
+  { id: "scrub", name: "Позиция / Position", hint: "С какого места записи звучит жук. Внизу играет вся запись, выше берётся короткий кусок.", anchor: "hindR", r: 22, kind: "raw" },
+  { id: "filter", name: "Фильтр / Filter", hint: "Закрыт: звук глухой. Открыт: яркий.", anchor: "head", r: 22, kind: "mouth" },
+  { id: "env", name: "Огибающая / Envelope", hint: "Как быстро звук нарастает и затихает. Выше: медленнее и дольше.", anchor: "antenna", r: 20, kind: "mouth" },
+  { id: "dist", name: "Грязь / Distortion", hint: "Искажение. Чем выше, тем грязнее звук и тем сильнее мутирует тело.", anchor: "thorax", r: 24, kind: "raw" },
+  { id: "detune", name: "Второй жук / Detune", hint: "Расстройка: к звуку добавляются две копии, чуть выше и чуть ниже.", anchor: "flankL", r: 22, kind: "olive" },
+  { id: "latch", name: "Зажим / Hold", hint: "Нажми на глаз на правом крыле: звук держится без пальца. Нажми на тело ещё раз: тишина.", anchor: "flankR", r: 20, kind: "eye", toggle: true },
+  { id: "reverb", name: "Реверб / Reverb", hint: "Звук растягивается в пространство. Брюхо набухает.", anchor: "belly", r: 28, kind: "sac" },
+  { id: "delay", name: "Повтор / Delay", hint: "Звук повторяется с затуханием, как эхо.", anchor: "tail", r: 22, kind: "sac" },
 ];
 
 // Какие органы уже нарисованы: проверяем, грузится ли первая и последняя картинка состояний.

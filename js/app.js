@@ -23,7 +23,8 @@ let organs = null;
 // зажим у каждого жука свой: включил на одном, на других остаётся как было
 const latchedBy = new Map();
 let latched = false;
-const params = { pitch: 0.5, filter: 0.85, dist: 0, reverb: 0.2, trill: 0, delay: 0, env: 0, detune: 0, glide: 0, scrub: 0 };
+const DEFAULTS = { pitch: 0.5, filter: 0.85, dist: 0, reverb: 0.2, trill: 0, delay: 0, env: 0, detune: 0, glide: 0, scrub: 0 };
+const params = { ...DEFAULTS };
 
 const $ = (sel) => document.querySelector(sel);
 const host = $("#host");
@@ -199,6 +200,11 @@ function release() {
 function mount(bug) {
   engine?.stop();
   held = 0;
+  // при смене жука ручки возвращаются в исходное положение
+  if (bug !== active) {
+    Object.assign(params, DEFAULTS);
+    if (engine) for (const [k, v] of Object.entries(params)) engine.setParam(k, v);
+  }
   active = bug;
   latched = latchedBy.get(bug.id) === true;
   engine?.setBug(bug);
@@ -252,7 +258,9 @@ function renderShelf() {
     tile.setAttribute("aria-label", b.code);
     tile.setAttribute("aria-pressed", String(b === active));
     tile.innerHTML = renderHero(b) || "";
-    tile.addEventListener("click", () => mount(b));
+    tile.addEventListener("click", () => {
+      if (b !== active) mount(b);
+    });
     shelf.appendChild(tile);
   }
   $("#reset").hidden = hybrids.length === 0;
@@ -271,6 +279,10 @@ $("#breed").addEventListener("click", () => {
   }
   const nums = hybrids.map((h) => Number(h.id.replace("hyb-", "")) || 0);
   const child = makeHybrid(PARENTS[0], PARENTS[1], Math.max(0, ...nums) + 1);
+  // номер нарисованной особи: самый маленький свободный, чтобы у шести гибридов были шесть разных тел
+  const used = new Set(hybrids.map((h) => h.design));
+  child.design = 1;
+  while (used.has(child.design)) child.design++;
   hybrids.push(child);
   saveHybrids();
   mount(child);
@@ -302,6 +314,11 @@ const credits = $("#credits");
 $("#organ-list").innerHTML = ORGANS.map(
   (o) => `<li><img src="assets/organs/${o.id}-2.webp" alt=""><span><b>${o.name}.</b> ${o.hint}</span></li>`
 ).join("");
+// закрытие по клику на пустую область вокруг окна, а не только по кнопке
+credits.addEventListener("click", (e) => {
+  const r = credits.getBoundingClientRect();
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) credits.close();
+});
 $("#about").addEventListener("click", () => {
   credits.showModal();
   // showModal фокусирует кнопку «Закрыть» внизу и прокручивает к ней: возвращаем начало

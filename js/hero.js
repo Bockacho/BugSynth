@@ -38,48 +38,28 @@ function probeStrain(sp) {
   return strainOk.get(sp);
 }
 
-// Начальная стадия: у обычных жуков чистая, у гибридов растёт с грузом мутаций (0..3, дробная).
+// Начальная стадия: у обычных жуков чистая, у гибридов растёт с грузом мутаций (0..3). Целая, без полупрозрачных наложений.
 export function baseStage(bug) {
   if (!bug.hybrid) return 0;
-  return Math.min(3, mutationLoad(bug.genome) * 5);
+  return Math.round(Math.min(3, mutationLoad(bug.genome) * 5));
 }
 
-// Два главных вида в миксе записей: левый (с большим весом) и правый.
+// Чьё тело рисовать. Для гибрида нужна его собственная нарисованная особь (ANCHORS["hybrid-<design>"]).
+// Пока таких нет, гибрид показывается как мутант главного родителя: чистая картинка одного вида, без наложений.
 function speciesOf(bug) {
+  if (bug.hybrid && ANCHORS[`hybrid-${bug.design}`]) return [`hybrid-${bug.design}`, `hybrid-${bug.design}`];
   const list = [...(bug.samples || [])].sort((a, b) => b.w - a.w).map((s) => s.name).filter((n) => ANCHORS[n]);
   if (!list.length) return null;
-  return [list[0], list[1] || list[0]];
+  return [list[0], list[0]];
 }
 
 const img = (sp, stage, suf = "") =>
   `<image href="assets/bugs/${sp}-${stage}${suf}.webp" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet"/>`;
 
-// Один слой-стадия: у одного вида просто картинка, у гибрида две половины срастаются.
-// Раньше шов рисовался линией и пунктиром поверх фото — на фоне фотореалистичных органов это
-// читалось как мультяшная наклейка. Вместо линии — размытый край половины: два вида перетекают
-// друг в друга мягкой фотографической растяжкой, без единого штриха, нарисованного кодом.
+// Один слой-стадия: одна картинка. Раньше гибрид склеивался из двух половин с размытым краем, и получались
+// призрачные двойные экспозиции; настоящие гибриды должны быть нарисованы целиком.
 function stageGroup(bug, sp, stage, id, suf = "") {
-  if (sp[0] === sp[1]) return img(sp[0], STAGES[stage], suf);
-  const seed = [...bug.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-  let s = seed;
-  const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
-  // у каждого гибрида своё место и ширина срастания
-  const cx = W / 2 + (r() - 0.5) * 30;
-  const half = 28 + r() * 22;
-  const a = (cx - half).toFixed(1);
-  const b = (cx + half).toFixed(1);
-  const grad = (gid, from, to) =>
-    `<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="${a}" y1="0" x2="${b}" y2="0"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient>`;
-  return (
-    `<defs>` +
-    grad(`${id}gl`, "#fff", "#000") +
-    grad(`${id}gr`, "#000", "#fff") +
-    `<mask id="${id}l" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="url(#${id}gl)"/></mask>` +
-    `<mask id="${id}r" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="url(#${id}gr)"/></mask>` +
-    `</defs>` +
-    `<g mask="url(#${id}l)">${img(sp[0], STAGES[stage], suf)}</g>` +
-    `<g mask="url(#${id}r)">${img(sp[1], STAGES[stage], suf)}</g>`
-  );
+  return img(sp[0], STAGES[stage], suf);
 }
 
 // Места органов для этого жука: у гибрида левая нога от одного родителя, правая от другого, остальное усреднено.
