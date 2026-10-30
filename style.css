@@ -1,203 +1,108 @@
-/* Бодихоррор: тёмный корпус, мокрая плоть, бронза. Пады — клавиши пишущей машинки. */
+/* Жук и есть синтезатор: ни панели, ни подложки. Только тёмный фон и тело с органами управления. */
 :root {
-  --bg: #0e0b0b;
-  --panel: #1a1413;
+  --bg: #0b0708;
   --ink: #ecdcd4;
   --muted: #a28f87;
-  --line: #3a2523;
-  --pad: #261b1a;
   --accent: #c4453d;
   --flesh: #d58f84;
   color-scheme: dark;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-html, body { margin: 0; }
+html, body { margin: 0; height: 100%; }
 body {
-  background: radial-gradient(ellipse at 50% 0%, #1f1211 0%, var(--bg) 60%);
+  background: radial-gradient(ellipse at 50% 35%, #2a0f12 0%, #120708 55%, var(--bg) 100%);
   color: var(--ink);
-  font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  padding: 16px max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
-  min-height: 100vh;
+  overscroll-behavior: none;
 }
 
-.device {
-  max-width: 440px;
-  margin: 0 auto;
-  background: linear-gradient(180deg, #211716 0%, var(--panel) 100%);
-  border: 1px solid var(--line);
-  border-top: 3px solid #7a2a30;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 200, 190, 0.06);
-}
-
-.top { display: flex; align-items: baseline; justify-content: space-between; }
-h1 { font-size: 18px; margin: 0; letter-spacing: 0.06em; text-transform: uppercase; }
-.proto { font-size: 12px; color: var(--muted); }
-
-/* наклейка с жуком: тёмный бархат */
-.sticker {
-  background: radial-gradient(ellipse at 50% 35%, #4a1a1d 0%, #230d10 60%, #12070a 100%);
-  color: var(--ink);
-  border: 1px solid #5a2a2c;
-  border-radius: 10px;
-  padding: 12px 16px 14px;
-  transform: rotate(-1.2deg);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(0, 0, 0, 0.55);
+#stage {
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  text-align: center;
-}
-.art { width: 100%; max-width: 380px; flex: none; }
-.art svg { width: 100%; height: auto; display: block; overflow: visible; }
-.label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.label .code { font-size: 12px; color: var(--flesh); letter-spacing: 0.1em; }
-.label strong { font-size: 17px; font-style: italic; overflow-wrap: anywhere; }
-.label strong.hyb { font-style: normal; }
-.label #bug-ru { font-size: 14px; color: var(--muted); }
-
-/* живое тело: медленное дыхание, нарывы пульсируют, усики шевелятся при игре */
-.art .flesh {
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-  animation: breathe 4.5s ease-in-out infinite;
-}
-@keyframes breathe { 50% { transform: scale(1.012, 1.02); } }
-.tumor, .tendril, .ant { transform-box: fill-box; transform-origin: 50% 50%; }
-.tendril { animation: sway 3.2s ease-in-out infinite alternate; transform-origin: 0 50%; }
-@keyframes sway { to { transform: rotate(4deg); } }
-.art .tumor { animation: throb 2.6s ease-in-out infinite alternate; }
-@keyframes throb { to { transform: scale(1.12); } }
-.playing .tumor { animation-duration: 0.35s; }
-.ant { transform-origin: 50% 0; }
-.playing .ant-l { animation: wiggle-l 0.12s infinite alternate ease-in-out; }
-.playing .ant-r { animation: wiggle-r 0.12s infinite alternate ease-in-out; }
-@keyframes wiggle-l { to { transform: rotate(-4deg); } }
-@keyframes wiggle-r { to { transform: rotate(4deg); } }
-.tile-art .flesh, .tile-art .tumor, .tile-art .tendril { animation: none; }
-@media (prefers-reduced-motion: reduce) {
-  .art .flesh, .art .tumor, .art .tendril, .playing .ant-l, .playing .ant-r, .pad::before { animation: none !important; }
+  padding: max(8px, env(safe-area-inset-top)) 8px max(10px, env(safe-area-inset-bottom));
 }
 
-/* пады: клавиши пишущей машинки с мокрой «кожей» вместо стекла */
-.pads {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  touch-action: none;
-}
-.pad {
-  position: relative;
-  aspect-ratio: 1;
-  border: 0;
-  padding: 0;
-  background: none;
+#bug {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   display: grid;
   place-items: center;
-  cursor: pointer;
-  touch-action: none;
+  transform-origin: 50% 70%;
+  transition: transform 0.35s ease-out, filter 0.35s ease-out;
 }
-/* картинка клавиши: мокрый купол в бронзовом ободке; при нажатии подставляется картинка с продавленным куполом */
-.pad::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url(assets/key.webp) center / contain no-repeat;
-  filter: drop-shadow(0 6px 6px #000b);
-  transition: transform 0.06s, filter 0.06s;
-  animation: dome 3.6s ease-in-out infinite;
-}
-.pad:nth-child(2n)::before { animation-delay: -1.1s; }
-.pad:nth-child(3n)::before { animation-delay: -2.2s; }
-@keyframes dome { 50% { transform: scale(1.035); } }
-.pad span {
-  position: relative;
-  z-index: 2;
-  font: 700 17px/1 "Courier New", ui-monospace, monospace;
-  color: #4a1218;
-  text-shadow: 0 1px 0 #ffe3d8aa;
+#shake { display: grid; place-items: center; width: 100%; height: 100%; will-change: transform; }
+#host { width: 100%; height: 100%; display: grid; place-items: center; }
+#host svg { width: 100%; height: 100%; max-width: 760px; display: block; overflow: visible; touch-action: none; }
+
+/* дыхание: тело едва заметно набухает и спадает */
+.flesh { transform-box: fill-box; transform-origin: 50% 55%; animation: breathe 5s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: scale(1.012, 1.02); } }
+
+/* органы */
+.organ { cursor: ns-resize; touch-action: none; transition: filter 0.2s; }
+.organ circle:not(.hit) { transition: transform 0.15s; }
+.organ.grab { filter: drop-shadow(0 0 10px #ffb59a); }
+/* название органа видно только пока его тянешь */
+.organ.grab .olabel { opacity: 1; }
+.organ.toggle { cursor: pointer; }
+.organ.toggle.on { filter: drop-shadow(0 0 12px #e0453a); }
+.olabel {
+  opacity: 0;
+  transition: opacity 0.15s;
+  font: 700 22px "Courier New", ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  fill: #f3dccb;
+  fill-opacity: 0.85;
+  paint-order: stroke;
+  stroke: #0b0506;
+  stroke-width: 4px;
+  stroke-linejoin: round;
   pointer-events: none;
 }
-.pad.on::before {
-  background-image: url(assets/key-pressed.webp);
-  transform: scale(0.95);
-  filter: drop-shadow(0 2px 3px #000b) brightness(0.9);
-  animation: none;
-}
+.ticks { transform-box: fill-box; transform-origin: center; animation: spin linear infinite; animation-duration: 0s; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.zone { cursor: pointer; }
 
-.status { margin: -6px 0 0; font-size: 13px; color: var(--muted); min-height: 1.4em; }
-.status:empty { visibility: hidden; }
+#hint { margin: 0; min-height: 1.3em; font-size: 13px; color: var(--muted); text-align: center; transition: opacity 0.6s; }
+#hint.gone { opacity: 0; }
 
-.octave { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 14px; color: var(--muted); }
-.octave button {
-  width: 44px; height: 44px; border-radius: 8px;
-  border: 1px solid var(--line); background: var(--pad); color: var(--ink);
-  font: inherit; font-size: 20px; cursor: pointer;
-}
-.octave b { color: var(--ink); display: inline-block; min-width: 1.5em; text-align: center; }
-
-.block { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
-.block h2, .card h2 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
-.card { border-top: 1px solid var(--line); padding-top: 12px; }
-.card p { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
-.card h2 { margin: 0 0 8px; }
-
-/* полка жуков */
-.shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+/* маленький лоток: смена и скрещивание жуков. Рамка и значки — картинки, вшитые в тот же реквизит-стиль. */
+#tray { display: flex; align-items: center; gap: 6px; margin-top: 6px; max-width: 100%; }
+#shelf { display: flex; gap: 4px; overflow-x: auto; max-width: calc(100vw - 180px); scrollbar-width: none; }
+#shelf::-webkit-scrollbar { display: none; }
 .tile {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 6px 4px; border: 1px solid var(--line); border-radius: 8px;
-  background: var(--pad); color: var(--muted); font: inherit; font-size: 11px; cursor: pointer;
+  flex: none; width: 48px; height: 48px; padding: 5px; border: 0; cursor: pointer;
+  background: url(assets/organs/ui-frame.webp) center / contain no-repeat;
+  opacity: 0.55; transition: opacity 0.15s;
 }
-.tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); color: var(--ink); }
-.tile-art { background: radial-gradient(ellipse at 50% 40%, #3e1619, #170a0c); border-radius: 6px; width: 100%; padding: 4px; display: block; }
-.tile-art svg { width: 100%; height: auto; display: block; }
+.tile[aria-pressed="true"] { opacity: 1; filter: drop-shadow(0 0 5px var(--accent)); }
+.tile svg { width: 100%; height: 100%; display: block; }
+.tile .flesh { animation: none; }
+#tray > button {
+  flex: none; width: 46px; height: 46px; border: 0; background: none; padding: 4px;
+  color: var(--flesh); font: inherit; font-size: 18px; cursor: pointer;
+}
+#tray > button img { width: 100%; height: 100%; object-fit: contain; display: block; }
+#tray > button[hidden] { display: none; }
+#tray > button:active img { transform: scale(0.92); }
+#toast { margin: 4px 0 0; min-height: 1.3em; font-size: 12px; color: var(--flesh); text-align: center; }
 
-/* скрещивание */
-.breed { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.breed label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
-select {
-  font: inherit; font-size: 14px; color: var(--ink); background: var(--pad);
-  border: 1px solid var(--line); border-radius: 8px; padding: 10px 8px; min-height: 44px; width: 100%;
-}
-button.primary, .row button {
-  font: inherit; font-size: 15px; min-height: 44px; border-radius: 8px; cursor: pointer;
-  border: 1px solid var(--line); background: var(--pad); color: var(--ink); padding: 0 14px;
-}
-button.primary { background: linear-gradient(180deg, #d05248, #8f2a27); border-color: #e0685c; color: #fff; letter-spacing: 0.04em; }
-.row { display: flex; gap: 10px; flex-wrap: wrap; }
-.row button[hidden] { display: none; }
+dialog { background: #1a0d0f; color: var(--ink); border: 1px solid #3a1c1f; border-radius: 12px; max-width: 420px; }
+dialog::backdrop { background: rgba(0, 0, 0, 0.7); }
+dialog h2 { margin: 0 0 8px; font-size: 16px; }
+dialog p, dialog li { font-size: 13px; color: var(--muted); }
+dialog a { color: var(--flesh); }
+dialog button { font: inherit; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #3a1c1f; background: #2a1215; color: var(--ink); cursor: pointer; }
 
-/* геном */
-.genes { display: grid; gap: 6px; }
-.gene-group { margin-top: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--flesh); }
-.gene { display: grid; grid-template-columns: 11rem 1fr; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
-.gene-bar { position: relative; height: 6px; background: var(--pad); border-radius: 3px; }
-.gene-bar i { display: block; height: 100%; background: var(--flesh); opacity: 0.85; border-radius: 3px; }
-.tick {
-  position: absolute; top: -5px; transform: translateX(-50%);
-  font: 600 9px/1 inherit; width: 14px; height: 14px; border-radius: 50%;
-  display: grid; place-items: center; color: #fff;
+@media (prefers-reduced-motion: reduce) {
+  .flesh, .ticks { animation: none !important; }
+  #bug { transition: none; }
 }
-.tick.a { background: var(--accent); }
-.tick.b { background: #6d6a66; }
-.legend, .warn { font-size: 12px; margin: 10px 0 0 !important; }
-.warn { color: var(--flesh) !important; }
-
-@media (max-width: 380px) {
-  .gene { grid-template-columns: 8.5rem 1fr; }
-}
-
-.credits { margin-top: 10px; font-size: 12px; color: var(--muted); }
-.credits summary { cursor: pointer; }
-.credits ul { margin: 6px 0 0; padding-left: 18px; }
-.credits a { color: var(--flesh); }

@@ -3,72 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="dark">
   <title>BugSynth</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="preload" as="image" href="assets/key-pressed.webp">
 </head>
 <body>
-  <main class="device">
-    <header class="top">
-      <h1>BugSynth</h1>
-      <span class="proto">прототип</span>
-    </header>
+  <main id="stage">
+    <div id="bug"><div id="shake"><div id="host"></div></div></div>
+    <p id="hint">Нажми на жука. Тело держит звук, пока давишь.</p>
 
-    <section class="sticker" aria-label="Жук">
-      <div id="bug-art" class="art"></div>
-      <div class="label">
-        <span id="bug-code" class="code"></span>
-        <strong id="bug-latin"></strong>
-        <span id="bug-ru"></span>
-      </div>
-    </section>
-
-    <div id="pads" class="pads" aria-label="Ноты"></div>
-    <p id="status" class="status">Нажми на пад, чтобы включить звук. На компьютере играют клавиши A S D F G H J K.</p>
-
-    <div class="octave">
-      <button id="oct-down" type="button" aria-label="Октава вниз">−</button>
-      <span>октава <b id="oct-label">0</b></span>
-      <button id="oct-up" type="button" aria-label="Октава вверх">+</button>
-    </div>
-
-    <section class="block">
-      <h2>Жуки</h2>
-      <div id="shelf" class="shelf"></div>
-    </section>
-
-    <section class="block">
-      <h2>Скрещивание</h2>
-      <div class="breed">
-        <label>Родитель A <select id="parent-a"></select></label>
-        <label>Родитель B <select id="parent-b"></select></label>
-      </div>
-      <button id="breed" class="primary" type="button">Скрестить</button>
-      <div class="row">
-        <button id="compare" type="button" hidden>Сравнить с родителями</button>
-        <button id="reset" type="button" hidden>Убрать гибридов</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <p id="bug-fact"></p>
-      <h2>Геном</h2>
-      <div id="genes" class="genes"></div>
-      <p id="gene-legend" class="legend" hidden>Метки на полосках: A и B — значения родителей.</p>
-      <details class="credits">
-        <summary>Источники звуков</summary>
-        <p>Записи насекомых с Wikimedia Commons, обработаны (нарезка в петлю, фильтры, смещение высоты):</p>
-        <ul>
-          <li>BUG-01, <i>Acalolepta rusticator</i>: BioAcoustica, <a href="https://creativecommons.org/licenses/by/3.0" rel="noopener">CC BY 3.0</a>, <a href="https://bio.acousti.ca/node/10302" rel="noopener">источник</a>.</li>
-          <li>BUG-02, <i>Amphipsalta zelandica</i>: Richard001, общественное достояние.</li>
-          <li>BUG-03, кустарниковые кузнечики: Mysid, общественное достояние.</li>
-          <li>BUG-04, <i>Gryllus campestris</i>: BioAcoustica, <a href="https://creativecommons.org/licenses/by/3.0" rel="noopener">CC BY 3.0</a>, <a href="https://bio.acousti.ca/node/9706" rel="noopener">источник</a>.</li>
-          <li>BUG-05, <i>Chorthippus albomarginatus</i>: Музей естественной истории, Лондон (BioAcoustica), <a href="https://creativecommons.org/licenses/by/3.0" rel="noopener">CC BY 3.0</a>.</li>
-        </ul>
-      </details>
-    </section>
+    <nav id="tray" aria-label="Жуки">
+      <div id="shelf"></div>
+      <button id="breed" type="button" aria-label="Скрестить жуков" title="Скрестить">
+        <img src="assets/organs/ui-breed.webp" alt="">
+      </button>
+      <button id="reset" type="button" aria-label="Убрать гибридов" title="Убрать гибридов" hidden>
+        <img src="assets/organs/ui-reset.webp" alt="">
+      </button>
+      <button id="about" type="button" aria-label="Источники звуков и картинок" title="Источники">
+        <img src="assets/organs/ui-info.webp" alt="">
+      </button>
+    </nav>
+    <p id="toast" role="status"></p>
   </main>
+
+  <dialog id="credits">
+    <form method="dialog">
+      <h2>Источники</h2>
+      <p>Звуки: записи насекомых с Wikimedia Commons, обработаны (нарезка в петлю, фильтры, смещение высоты).</p>
+      <ul>
+        <li>BUG-01, <i>Acalolepta rusticator</i>: BioAcoustica, <a href="https://creativecommons.org/licenses/by/3.0" rel="noopener">CC BY 3.0</a>, <a href="https://bio.acousti.ca/node/10302" rel="noopener">источник</a>.</li>
+        <li>BUG-02, <i>Amphipsalta zelandica</i>: Richard001, общественное достояние.</li>
+      </ul>
+      <p>Картинки жуков и деталей сгенерированы нейросетью по промптам автора.</p>
+      <button>Закрыть</button>
+    </form>
+  </dialog>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
