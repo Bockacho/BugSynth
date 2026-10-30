@@ -3,6 +3,8 @@ import { NATURAL_BUGS, makeHybrid, fillGenome } from "./genome.js";
 import { createBugView, renderHero, baseStage } from "./hero.js";
 import { createOrgans, ORGANS } from "./organs.js";
 
+const SEEN_KEY = "bugsynth.seenIntro";
+
 const STORAGE_KEY = "bugsynth.hybrids";
 const MAX_HYBRIDS = 6;
 // пока для двух жуков есть и звук, и нарисованное тело
@@ -25,7 +27,45 @@ const $ = (sel) => document.querySelector(sel);
 const host = $("#host");
 const bugEl = $("#bug");
 const shake = $("#shake");
-const hint = $("#hint");
+const intro = $("#intro");
+const plaque = $("#plaque");
+const plaqueName = $("#plaque-name");
+const plaqueVal = $("#plaque-val");
+const plaqueText = $("#plaque-text");
+
+// вводная карточка: показываем, пока человек не нажал на жука; запоминаем, что уже видел
+let introSeen = false;
+try {
+  introSeen = localStorage.getItem(SEEN_KEY) === "1";
+} catch (_) {}
+if (introSeen) intro.hidden = true;
+function dismissIntro() {
+  if (intro.hidden || intro.classList.contains("gone")) return;
+  intro.classList.add("gone");
+  setTimeout(() => (intro.hidden = true), 500);
+  try {
+    localStorage.setItem(SEEN_KEY, "1");
+  } catch (_) {}
+}
+
+// плашка органа: название, значение и что делает. На телефоне исчезает через секунду после отпускания.
+let plaqueTimer = 0;
+const FORMAT = {
+  pitch: (v) => { const st = Math.round((v - 0.5) * 24); return `${st > 0 ? "+" : ""}${st} пт`; },
+  filter: (v) => (v < 0.2 ? "закрыт" : v > 0.8 ? "открыт" : `${Math.round(v * 100)}%`),
+};
+function showPlaque(o, v, mode) {
+  clearTimeout(plaqueTimer);
+  if (mode === "end") {
+    plaqueTimer = setTimeout(() => (plaque.hidden = true), 1100);
+    return;
+  }
+  plaqueName.textContent = o.name;
+  plaqueVal.textContent = o.toggle ? (v > 0.5 ? "включён" : "выключен") : (FORMAT[o.id] || ((x) => `${Math.round(x * 100)}%`))(v);
+  plaqueText.textContent = o.hint;
+  plaque.hidden = false;
+  if (!intro.hidden) dismissIntro();
+}
 const toast = $("#toast");
 const allBugs = () => [...PARENTS, ...hybrids];
 
@@ -136,7 +176,7 @@ function frame() {
 let held = 0;
 async function press() {
   held++;
-  hint.classList.add("gone");
+  dismissIntro();
   const wasPlaying = engine?.playing;
   await ensureAudio();
   if (latched && wasPlaying) {
@@ -190,7 +230,7 @@ function mount(bug) {
     params[id] = v;
     engine?.setParam(id, v);
     if (id === "dist" || id === "reverb") applyVisual();
-  });
+  }, showPlaque);
   for (const o of ORGANS) organs.set(o.id, o.id === "latch" ? (latched ? 1 : 0) : params[o.id]);
   applyVisual();
   renderShelf();
@@ -252,7 +292,16 @@ $("#reset").addEventListener("click", () => {
 });
 
 const credits = $("#credits");
-$("#about").addEventListener("click", () => credits.showModal());
+// список органов на экране «Как играть»: настоящая картинка органа, название, что делает
+$("#organ-list").innerHTML = ORGANS.map(
+  (o) => `<li><img src="assets/organs/${o.id}-2.webp" alt=""><span><b>${o.name}.</b> ${o.hint}</span></li>`
+).join("");
+$("#about").addEventListener("click", () => {
+  credits.showModal();
+  // showModal фокусирует кнопку «Закрыть» внизу и прокручивает к ней: возвращаем начало
+  credits.scrollTop = 0;
+  credits.querySelector("h2").focus({ preventScroll: true });
+});
 
 // клавиатура: пробел давит на тело
 let spaceDown = false;

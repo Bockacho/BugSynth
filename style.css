@@ -1,3 +1,21 @@
+/* Roboto лежит в проекте (переменный шрифт), чтобы подсказки выглядели одинаково и работали без интернета */
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(assets/fonts/roboto-cyrillic.woff2) format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(assets/fonts/roboto-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* Жук и есть синтезатор: ни панели, ни подложки. Только тёмный фон и тело с органами управления. */
 :root {
   --bg: #0b0708;
@@ -13,7 +31,7 @@ html, body { margin: 0; height: 100%; }
 body {
   background: radial-gradient(ellipse at 50% 35%, #2a0f12 0%, #120708 55%, var(--bg) 100%);
   color: var(--ink);
-  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 400 15px/1.4 "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
   overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
@@ -55,29 +73,39 @@ body {
 .organ { cursor: ns-resize; touch-action: none; transition: filter 0.2s; }
 .organ circle:not(.hit) { transition: transform 0.15s; }
 .organ.grab { filter: drop-shadow(0 0 10px #ffb59a); }
-/* название органа видно только пока его тянешь */
-.organ.grab .olabel { opacity: 1; }
 .organ.toggle { cursor: pointer; }
 .organ.toggle.on { filter: drop-shadow(0 0 12px #e0453a); }
-.olabel {
-  opacity: 0;
-  transition: opacity 0.15s;
-  font: 700 22px "Courier New", ui-monospace, monospace;
-  letter-spacing: 0.06em;
-  fill: #f3dccb;
-  fill-opacity: 0.85;
-  paint-order: stroke;
-  stroke: #0b0506;
-  stroke-width: 4px;
-  stroke-linejoin: round;
-  pointer-events: none;
-}
 .ticks { transform-box: fill-box; transform-origin: center; animation: spin linear infinite; animation-duration: 0s; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .zone { cursor: pointer; }
 
-#hint { margin: 0; min-height: 1.3em; font-size: 13px; color: var(--muted); text-align: center; transition: opacity 0.6s; }
-#hint.gone { opacity: 0; }
+/* плашки с подсказками: Roboto, тёмное стекло, тонкая бронзовая рамка */
+#plaque, #intro {
+  position: absolute;
+  left: 50%;
+  bottom: calc(max(10px, env(safe-area-inset-bottom)) + 92px);
+  transform: translateX(-50%);
+  z-index: 3;
+  width: min(92vw, 400px);
+  padding: 10px 14px 12px;
+  border: 1px solid #5a3a2c;
+  border-radius: 10px;
+  background: rgba(16, 7, 8, 0.86);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  color: var(--ink);
+  font-family: "Roboto", system-ui, sans-serif;
+  pointer-events: none;
+}
+#plaque[hidden] { display: none; }
+#plaque b { font-weight: 700; font-size: 15px; letter-spacing: 0.02em; color: #f3d9c4; }
+#plaque-val { float: right; font-weight: 500; font-size: 14px; color: var(--flesh); font-variant-numeric: tabular-nums; }
+#plaque p { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+#intro ol { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+#intro li + li { margin-top: 5px; }
+#intro b { font-weight: 700; color: #f3d9c4; }
+#intro.gone { opacity: 0; transition: opacity 0.5s; }
 
 /* маленький лоток: смена и скрещивание жуков. Рамка и значки — картинки, вшитые в тот же реквизит-стиль. */
 #tray { position: relative; z-index: 2; display: flex; align-items: center; gap: 6px; margin-top: 6px; max-width: 100%; }
@@ -105,8 +133,16 @@ body {
 
 dialog { background: #1a0d0f; color: var(--ink); border: 1px solid #3a1c1f; border-radius: 12px; max-width: 420px; }
 dialog::backdrop { background: rgba(0, 0, 0, 0.7); }
-dialog h2 { margin: 0 0 8px; font-size: 16px; }
-dialog p, dialog li { font-size: 13px; color: var(--muted); }
+dialog h2 { margin: 0 0 8px; font-size: 18px; font-weight: 700; outline: none; }
+dialog { font-family: "Roboto", system-ui, sans-serif; max-height: 86vh; overflow-y: auto; }
+dialog p, dialog li { font-size: 13px; line-height: 1.45; color: var(--muted); }
+dialog h3 { margin: 16px 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--flesh); }
+dialog b { font-weight: 700; color: #f3d9c4; }
+.steps { padding-left: 20px; margin: 6px 0; }
+.steps li + li { margin-top: 6px; }
+.organ-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.organ-list li { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; }
+.organ-list img { width: 44px; height: 44px; object-fit: contain; }
 dialog a { color: var(--flesh); }
 dialog button { font: inherit; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #3a1c1f; background: #2a1215; color: var(--ink); cursor: pointer; }
 

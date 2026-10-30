@@ -10,7 +10,19 @@
 <body>
   <main id="stage">
     <div id="bug"><div id="shake"><div id="host"></div></div></div>
-    <p id="hint">Нажми на жука и держи: он звучит, пока давишь. Органы на теле тяни вверх-вниз. Сшитые жуки внизу — скрестить.</p>
+    <!-- подсказка при касании органа; лежит поверх, чтобы не двигать жука -->
+    <div id="plaque" role="status" aria-live="polite" hidden>
+      <b id="plaque-name"></b><span id="plaque-val"></span>
+      <p id="plaque-text"></p>
+    </div>
+    <!-- вводная карточка: видна, пока не нажал на жука в первый раз -->
+    <div id="intro">
+      <ol>
+        <li><b>Нажми на жука и держи.</b> Он звучит, пока давишь.</li>
+        <li><b>Тяни органы на теле вверх-вниз.</b> Это ручки: высота, эхо, грязь.</li>
+        <li><b>Сшитые жуки внизу: скрестить.</b> Бирка: все подсказки.</li>
+      </ol>
+    </div>
 
     <nav id="tray" aria-label="Жуки">
       <div id="shelf"></div>
@@ -20,7 +32,7 @@
       <button id="reset" type="button" aria-label="Убрать гибридов" title="Убрать гибридов" hidden>
         <img src="assets/organs/ui-reset.webp" alt="">
       </button>
-      <button id="about" type="button" aria-label="Источники звуков и картинок" title="Источники">
+      <button id="about" type="button" aria-label="Как играть и источники" title="Как играть">
         <img src="assets/organs/ui-info.webp" alt="">
       </button>
     </nav>
@@ -29,13 +41,22 @@
 
   <dialog id="credits">
     <form method="dialog">
-      <h2>Источники</h2>
+      <h2 tabindex="-1">Как играть</h2>
+      <ol class="steps">
+        <li><b>Нажми на жука и держи.</b> Звук идёт, пока давишь. Тело дёргается в такт ему.</li>
+        <li><b>Тяни органы вверх-вниз.</b> Каждый орган на теле это ручка. Название и значение появятся в плашке.</li>
+        <li><b>Скрести.</b> Значок с двумя сшитыми жуками выводит гибрида: новое тело и смесь двух звуков. Ручки у него те же.</li>
+        <li><b>Держи звук.</b> Коснись глаза у бока: звук продолжится без пальца. Нажми на тело ещё раз, чтобы заглушить.</li>
+      </ol>
+      <h3>Органы</h3>
+      <ul id="organ-list" class="organ-list"></ul>
+      <h3>Источники</h3>
       <p>Звуки: записи насекомых с Wikimedia Commons, обработаны (нарезка в петлю, фильтры, смещение высоты).</p>
       <ul>
         <li>BUG-01, <i>Acalolepta rusticator</i>: BioAcoustica, <a href="https://creativecommons.org/licenses/by/3.0" rel="noopener">CC BY 3.0</a>, <a href="https://bio.acousti.ca/node/10302" rel="noopener">источник</a>.</li>
         <li>BUG-02, <i>Amphipsalta zelandica</i>: Richard001, общественное достояние.</li>
       </ul>
-      <p>Картинки жуков и деталей сгенерированы нейросетью по промптам автора.</p>
+      <p>Картинки жуков, органов и значков сгенерированы нейросетью по промптам автора. Шрифт Roboto, Apache License 2.0.</p>
       <button>Закрыть</button>
     </form>
   </dialog>

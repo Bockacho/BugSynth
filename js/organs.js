@@ -13,18 +13,19 @@ const GRADIENTS = `
   <radialGradient id="og-eye" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#f4ecd8"/><stop offset=".7" stop-color="#cdb99a"/><stop offset="1" stop-color="#7a5a46"/></radialGradient>`;
 
 // toggle: орган-переключатель (касание), остальные тянутся
+// name и hint показываются в плашках: при касании органа и на экране «Как играть»
 export const ORGANS = [
-  { id: "pitch", label: "питч", anchor: "legL", r: 22, kind: "bronze" },
-  { id: "trill", label: "стрекот", anchor: "legR", r: 22, kind: "olive" },
-  { id: "glide", label: "скольжение", anchor: "hindL", r: 22, kind: "bronze" },
-  { id: "scrub", label: "скраб", anchor: "hindR", r: 22, kind: "raw" },
-  { id: "filter", label: "рот", anchor: "head", r: 22, kind: "mouth" },
-  { id: "env", label: "неохота", anchor: "antenna", r: 20, kind: "mouth" },
-  { id: "dist", label: "грязь", anchor: "thorax", r: 24, kind: "raw" },
-  { id: "detune", label: "второй жук", anchor: "flankL", r: 22, kind: "olive" },
-  { id: "latch", label: "зажим", anchor: "flankR", r: 20, kind: "eye", toggle: true },
-  { id: "reverb", label: "эхо", anchor: "belly", r: 28, kind: "sac" },
-  { id: "delay", label: "повтор", anchor: "tail", r: 22, kind: "sac" },
+  { id: "pitch", name: "Питч", hint: "Высота звука. Тяни вверх: выше, вниз: ниже.", anchor: "legL", r: 22, kind: "bronze" },
+  { id: "trill", name: "Стрекот", hint: "Дрожание громкости: от ровного звука до быстрого треска.", anchor: "legR", r: 22, kind: "olive" },
+  { id: "glide", name: "Скольжение", hint: "Насколько лениво высота доезжает до новой ноты.", anchor: "hindL", r: 22, kind: "bronze" },
+  { id: "scrub", name: "Скраб", hint: "Игла по записи: выбираешь, какой кусок насекомого звучит.", anchor: "hindR", r: 22, kind: "raw" },
+  { id: "filter", name: "Рот", hint: "Фильтр. Закрыт: звук глухой, открыт: яркий.", anchor: "head", r: 22, kind: "mouth" },
+  { id: "env", name: "Неохота", hint: "Жук неохотно включается и долго затихает.", anchor: "antenna", r: 20, kind: "mouth" },
+  { id: "dist", name: "Грязь", hint: "Искажение. Чем выше, тем грязнее звук и тем сильнее мутирует тело.", anchor: "thorax", r: 24, kind: "raw" },
+  { id: "detune", name: "Второй жук", hint: "Расстройка: внутри звучит ещё одна копия, чуть выше и чуть ниже.", anchor: "flankL", r: 22, kind: "olive" },
+  { id: "latch", name: "Зажим", hint: "Коснись глаза: звук держится без пальца. Нажми на тело ещё раз: тишина.", anchor: "flankR", r: 20, kind: "eye", toggle: true },
+  { id: "reverb", name: "Эхо", hint: "Реверберация. Брюхо набухает, звук растягивается в пространство.", anchor: "belly", r: 28, kind: "sac" },
+  { id: "delay", name: "Повтор", hint: "Эхо-повторы: жук повторяет сам себя, повторы затухают.", anchor: "tail", r: 22, kind: "sac" },
 ];
 
 // Какие органы уже нарисованы: проверяем, грузится ли первая и последняя картинка состояний.
@@ -76,7 +77,7 @@ function placeholder(o) {
   );
 }
 
-export function createOrgans(view, onChange) {
+export function createOrgans(view, onChange, onInfo = () => {}) {
   const { svg, organs, anchors } = view;
   const defs = document.createElementNS(NS, "defs");
   defs.innerHTML = GRADIENTS;
@@ -94,7 +95,6 @@ export function createOrgans(view, onChange) {
     g.innerHTML =
       placeholder(o) +
       `<g class="sprite" hidden></g>` +
-      `<text y="${-o.r * 1.7}" text-anchor="middle" class="olabel">${o.label}</text>` +
       `<circle class="hit" r="${o.r * 1.45}" fill="transparent"/>`;
     organs.appendChild(g);
     state[o.id] = 0;
@@ -144,6 +144,14 @@ export function createOrgans(view, onChange) {
       set(state[o.id]);
     });
 
+    // подсказка: на компьютере при наведении, на телефоне при касании
+    g.addEventListener("pointerenter", (e) => {
+      if (e.pointerType === "mouse") onInfo(o, state[o.id], "hover");
+    });
+    g.addEventListener("pointerleave", (e) => {
+      if (e.pointerType === "mouse" && !g.classList.contains("grab")) onInfo(o, state[o.id], "end");
+    });
+
     if (o.toggle) {
       g.addEventListener("pointerdown", (e) => {
         e.stopPropagation();
@@ -151,7 +159,9 @@ export function createOrgans(view, onChange) {
         const v = state[o.id] > 0.5 ? 0 : 1;
         set(v);
         onChange(o.id, v);
+        onInfo(o, v, "touch");
       });
+      g.addEventListener("pointerup", () => onInfo(o, state[o.id], "end"));
       continue;
     }
 
@@ -164,16 +174,20 @@ export function createOrgans(view, onChange) {
       const h = svg.getBoundingClientRect().height;
       drag = { y: e.clientY, v: state[o.id], span: h * 0.35 };
       g.classList.add("grab");
+      onInfo(o, state[o.id], "touch");
     });
     g.addEventListener("pointermove", (e) => {
       if (!drag) return;
       const v = Math.min(1, Math.max(0, drag.v + (drag.y - e.clientY) / drag.span));
       set(v);
       onChange(o.id, v);
+      onInfo(o, v, "touch");
     });
     const end = () => {
+      if (!drag) return;
       drag = null;
       g.classList.remove("grab");
+      onInfo(o, state[o.id], "end");
     };
     g.addEventListener("pointerup", end);
     g.addEventListener("pointercancel", end);
