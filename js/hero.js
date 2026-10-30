@@ -34,8 +34,11 @@ export { HYBRID_COUNT };
 
 let counter = 0;
 
+// «напряжённые» позы нарисованы только для этих видов; остальным (гибридам) не пробуем их грузить, чтобы не было 404
+const STRAIN_SPECIES = new Set(["longhorn", "cicada"]);
 const strainOk = new Map();
 function probeStrain(sp) {
+  if (!STRAIN_SPECIES.has(sp)) return Promise.resolve(false);
   if (!strainOk.has(sp)) {
     strainOk.set(
       sp,
