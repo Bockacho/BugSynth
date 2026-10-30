@@ -20,6 +20,8 @@ let hybrids = loadHybrids();
 let active = PARENTS[0];
 let view = null;
 let organs = null;
+// зажим у каждого жука свой: включил на одном, на других остаётся как было
+const latchedBy = new Map();
 let latched = false;
 const params = { pitch: 0.5, filter: 0.85, dist: 0, reverb: 0.2, trill: 0, delay: 0, env: 0, detune: 0, glide: 0, scrub: 0 };
 
@@ -198,6 +200,7 @@ function mount(bug) {
   engine?.stop();
   held = 0;
   active = bug;
+  latched = latchedBy.get(bug.id) === true;
   engine?.setBug(bug);
   view = createBugView(bug);
   host.innerHTML = "";
@@ -223,6 +226,7 @@ function mount(bug) {
   organs = createOrgans(view, (id, v) => {
     if (id === "latch") {
       latched = v > 0.5;
+      latchedBy.set(active.id, latched);
       // сняли зажим: звук гаснет
       if (!latched && engine?.playing) engine.stop();
       return;
@@ -287,6 +291,8 @@ $("#reset").addEventListener("click", () => {
   resetArmed = 0;
   hybrids = [];
   saveHybrids();
+  // номера гибридов после сброса начнутся заново: старые зажимы не должны достаться новым
+  for (const k of [...latchedBy.keys()]) if (!PARENTS.some((b) => b.id === k)) latchedBy.delete(k);
   mount(PARENTS[0]);
   say("Гибриды убраны.");
 });

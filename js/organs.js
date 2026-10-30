@@ -23,7 +23,7 @@ export const ORGANS = [
   { id: "env", name: "Неохота", hint: "Жук неохотно включается и долго затихает.", anchor: "antenna", r: 20, kind: "mouth" },
   { id: "dist", name: "Грязь", hint: "Искажение. Чем выше, тем грязнее звук и тем сильнее мутирует тело.", anchor: "thorax", r: 24, kind: "raw" },
   { id: "detune", name: "Второй жук", hint: "Расстройка: внутри звучит ещё одна копия, чуть выше и чуть ниже.", anchor: "flankL", r: 22, kind: "olive" },
-  { id: "latch", name: "Зажим", hint: "Коснись глаза: звук держится без пальца. Нажми на тело ещё раз: тишина.", anchor: "flankR", r: 20, kind: "eye", toggle: true },
+  { id: "latch", name: "Зажим", hint: "Нажми на глаз на правом крыле (не на глаза у головы): звук держится без пальца. Нажми на тело ещё раз: тишина.", anchor: "flankR", r: 20, kind: "eye", toggle: true },
   { id: "reverb", name: "Эхо", hint: "Реверберация. Брюхо набухает, звук растягивается в пространство.", anchor: "belly", r: 28, kind: "sac" },
   { id: "delay", name: "Повтор", hint: "Эхо-повторы: жук повторяет сам себя, повторы затухают.", anchor: "tail", r: 22, kind: "sac" },
 ];
@@ -70,7 +70,6 @@ function placeholder(o) {
     `<circle r="${r * 1.6}" fill="#000" opacity=".3"/>` +
     `<circle r="${r}" fill="url(#og-${o.kind})" stroke="#1d0a08" stroke-width="3"/>` +
     `<circle r="${r * 0.86}" fill="none" stroke="#d2a35a" stroke-width="2" stroke-dasharray="2 5" opacity=".85"/>` +
-    `<path class="arc" fill="none" stroke="#ffd9bc" stroke-width="4.5" stroke-linecap="round" d=""/>` +
     inner[o.kind](r) +
     `<circle cx="${-r * 0.38}" cy="${-r * 0.42}" r="${r * 0.16}" fill="#fff" opacity=".5"/>` +
     `</g>`
@@ -95,6 +94,7 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
     g.innerHTML =
       placeholder(o) +
       `<g class="sprite" hidden></g>` +
+      `<path class="arc" fill="none" stroke="#ffd9bc" stroke-width="4.5" stroke-linecap="round" d=""/>` +
       `<circle class="hit" r="${o.r * 1.45}" fill="transparent"/>`;
     organs.appendChild(g);
     state[o.id] = 0;
@@ -110,13 +110,14 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
     const set = (v) => {
       state[o.id] = v;
       if (o.toggle) g.classList.toggle("on", v > 0.5);
+      // шкала вокруг крутилки обновляется всегда, с картинкой органа или без
+      arcEl.setAttribute("d", o.toggle ? "" : arc(o.r * 1.12, v));
       if (frames) {
         // четыре состояния: соседние смешиваются по значению
         const f = v * 3;
         frames.forEach((im, i) => im.setAttribute("opacity", String(Math.max(0, 1 - Math.abs(f - i)))));
         return;
       }
-      arcEl.setAttribute("d", o.toggle ? "" : arc(o.r * 1.12, v));
       if (parts.needle) parts.needle.setAttribute("transform", `rotate(${(v - 0.5) * 270})`);
       if (parts.ticks) {
         parts.ticks.style.animationDuration = `${v < 0.02 ? 0 : 3.2 - v * 2.9}s`;
@@ -140,7 +141,7 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
         .join("");
       frames = [...sprite.querySelectorAll("image")];
       sprite.removeAttribute("hidden");
-      ph.setAttribute("hidden", "");
+      ph.style.display = "none"; // атрибут hidden на SVG-элементах не работает
       set(state[o.id]);
     });
 

@@ -139,6 +139,8 @@ dialog p, dialog li { font-size: 13px; line-height: 1.45; color: var(--muted); }
 dialog h3 { margin: 16px 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--flesh); }
 dialog b { font-weight: 700; color: #f3d9c4; }
 .steps { padding-left: 20px; margin: 6px 0; }
+.plain { padding-left: 18px; margin: 6px 0; }
+.plain li + li { margin-top: 4px; }
 .steps li + li { margin-top: 6px; }
 .organ-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .organ-list li { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; }
