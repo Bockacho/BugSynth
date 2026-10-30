@@ -131,24 +131,32 @@ function frame() {
 }
 
 // --- нажатие на тело ---
+// held: палец (или пробел) сейчас на теле. Первое нажатие ждёт загрузки записей; если за это время
+// палец уже отпустили, голос не запускаем, иначе звук залипал бы без пальца.
+let held = 0;
 async function press() {
+  held++;
   hint.classList.add("gone");
+  const wasPlaying = engine?.playing;
   await ensureAudio();
-  if (latched && engine.playing) {
+  if (latched && wasPlaying) {
     // при зажиме повторное нажатие гасит звук
     engine.stop();
     return;
   }
+  if (!latched && held === 0) return;
   engine.start();
 }
 
 function release() {
-  if (!engine || latched) return;
+  held = Math.max(0, held - 1);
+  if (!engine || latched || held > 0) return;
   engine.stop();
 }
 
 function mount(bug) {
   engine?.stop();
+  held = 0;
   active = bug;
   engine?.setBug(bug);
   view = createBugView(bug);
@@ -167,7 +175,7 @@ function mount(bug) {
   view.organs.insertBefore(zone, view.organs.firstChild);
   zone.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-    zone.setPointerCapture(e.pointerId);
+    try { zone.setPointerCapture(e.pointerId); } catch (_) {}
     press();
   });
   for (const type of ["pointerup", "pointercancel"]) zone.addEventListener(type, release);
@@ -214,7 +222,7 @@ function say(text) {
 
 $("#breed").addEventListener("click", () => {
   if (hybrids.length >= MAX_HYBRIDS) {
-    say(`Гибридов уже ${MAX_HYBRIDS}. Убери старых кнопкой ×.`);
+    say(`Гибридов уже ${MAX_HYBRIDS}. Убери старых: приколотый жук внизу, два касания.`);
     return;
   }
   const nums = hybrids.map((h) => Number(h.id.replace("hyb-", "")) || 0);
@@ -222,14 +230,25 @@ $("#breed").addEventListener("click", () => {
   hybrids.push(child);
   saveHybrids();
   mount(child);
-  say(`Выведен ${child.code}. Это новое тело и новый звук.`);
+  // новый значок на полке вздрагивает, чтобы было видно, что гибрид появился
+  $("#shelf").lastElementChild?.classList.add("born");
+  $("#shelf").lastElementChild?.scrollIntoView({ inline: "end", block: "nearest" });
+  say(`Выведен ${child.code}: новое тело и новый звук.`);
 });
 
+// сброс в два касания: первое предупреждает, второе (в течение 3 с) удаляет
+let resetArmed = 0;
 $("#reset").addEventListener("click", () => {
+  if (performance.now() - resetArmed > 3000) {
+    resetArmed = performance.now();
+    say(`Нажми ещё раз, чтобы убрать всех гибридов (${hybrids.length}).`);
+    return;
+  }
+  resetArmed = 0;
   hybrids = [];
   saveHybrids();
   mount(PARENTS[0]);
-  say("");
+  say("Гибриды убраны.");
 });
 
 const credits = $("#credits");
@@ -238,20 +257,27 @@ $("#about").addEventListener("click", () => credits.showModal());
 // клавиатура: пробел давит на тело
 let spaceDown = false;
 addEventListener("keydown", (e) => {
-  if (e.code !== "Space" || e.repeat || spaceDown) return;
+  if (e.code !== "Space" || e.target.closest?.("dialog")) return;
   e.preventDefault();
+  if (e.repeat || spaceDown) return;
   spaceDown = true;
   press();
 });
 addEventListener("keyup", (e) => {
-  if (e.code !== "Space") return;
+  if (e.code !== "Space" || e.target.closest?.("dialog")) return;
+  e.preventDefault();
+  if (!spaceDown) return;
   spaceDown = false;
   release();
 });
+// после клика кнопка лотка не держит фокус, иначе Enter и пробел снова её нажимают
+for (const b of document.querySelectorAll("#tray button")) b.addEventListener("click", () => b.blur());
 addEventListener("blur", () => {
   if (!latched) engine?.stop();
 });
 
 if (FX.size) say(`Диагностика звука: ${[...FX].join(", ")}`);
+// ?fx=debug: доступ к движку из консоли для проверки
+if (FX.has("debug")) window.__bugsynth = { get engine() { return engine; }, get ctx() { return ctx; }, get latched() { return latched; }, get held() { return held; } };
 mount(active);
 requestAnimationFrame(frame);

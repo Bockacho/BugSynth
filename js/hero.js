@@ -11,12 +11,12 @@ const ANCHORS = {
   longhorn: {
     head: [322, 142], thorax: [322, 196], belly: [322, 405], tail: [322, 505], antenna: [374, 58],
     legL: [196, 240], legR: [434, 240], hindL: [208, 382], hindR: [437, 378], flankL: [286, 300], flankR: [358, 300],
-    body: [322, 330, 120, 230],
+    body: [322, 310, 230, 290],
   },
   cicada: {
     head: [322, 142], thorax: [322, 205], belly: [322, 420], tail: [322, 505], antenna: [382, 44],
     legL: [162, 172], legR: [482, 172], hindL: [150, 300], hindR: [492, 300], flankL: [258, 330], flankR: [386, 330],
-    body: [322, 330, 150, 240],
+    body: [322, 320, 250, 290],
   },
 };
 
@@ -54,15 +54,6 @@ function speciesOf(bug) {
 const img = (sp, stage, suf = "") =>
   `<image href="assets/bugs/${sp}-${stage}${suf}.webp" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet"/>`;
 
-// Неровная линия шва по центру: по ней два родителя «срастаются».
-function seamPoints(seed) {
-  const pts = [];
-  let s = seed;
-  const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
-  for (let y = 0; y <= H; y += 40) pts.push([W / 2 + (r() - 0.5) * 36, y]);
-  return pts;
-}
-
 // Один слой-стадия: у одного вида просто картинка, у гибрида две половины срастаются.
 // Раньше шов рисовался линией и пунктиром поверх фото — на фоне фотореалистичных органов это
 // читалось как мультяшная наклейка. Вместо линии — размытый край половины: два вида перетекают
@@ -70,15 +61,21 @@ function seamPoints(seed) {
 function stageGroup(bug, sp, stage, id, suf = "") {
   if (sp[0] === sp[1]) return img(sp[0], STAGES[stage], suf);
   const seed = [...bug.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-  const pts = seamPoints(seed);
-  const line = pts.map(([x, y]) => `${x.toFixed(1)} ${y}`).join(" L");
-  const left = `M0 0 L${line} L0 ${H} Z`;
-  const right = `M${W} 0 L${line} L${W} ${H} Z`;
+  let s = seed;
+  const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  // у каждого гибрида своё место и ширина срастания
+  const cx = W / 2 + (r() - 0.5) * 30;
+  const half = 28 + r() * 22;
+  const a = (cx - half).toFixed(1);
+  const b = (cx + half).toFixed(1);
+  const grad = (gid, from, to) =>
+    `<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="${a}" y1="0" x2="${b}" y2="0"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient>`;
   return (
     `<defs>` +
-    `<filter id="${id}bl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="15"/></filter>` +
-    `<mask id="${id}l" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><path d="${left}" fill="#fff" filter="url(#${id}bl)"/></mask>` +
-    `<mask id="${id}r" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><path d="${right}" fill="#fff" filter="url(#${id}bl)"/></mask>` +
+    grad(`${id}gl`, "#fff", "#000") +
+    grad(`${id}gr`, "#000", "#fff") +
+    `<mask id="${id}l" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="url(#${id}gl)"/></mask>` +
+    `<mask id="${id}r" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="url(#${id}gr)"/></mask>` +
     `</defs>` +
     `<g mask="url(#${id}l)">${img(sp[0], STAGES[stage], suf)}</g>` +
     `<g mask="url(#${id}r)">${img(sp[1], STAGES[stage], suf)}</g>`

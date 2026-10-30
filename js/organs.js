@@ -95,7 +95,7 @@ export function createOrgans(view, onChange) {
       placeholder(o) +
       `<g class="sprite" hidden></g>` +
       `<text y="${-o.r * 1.7}" text-anchor="middle" class="olabel">${o.label}</text>` +
-      `<circle class="hit" r="${o.r * 1.8}" fill="transparent"/>`;
+      `<circle class="hit" r="${o.r * 1.45}" fill="transparent"/>`;
     organs.appendChild(g);
     state[o.id] = 0;
     const ph = g.querySelector(".ph");
