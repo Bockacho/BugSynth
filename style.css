@@ -73,6 +73,8 @@ body {
 .organ { cursor: ns-resize; touch-action: none; transition: filter 0.2s; }
 .organ circle:not(.hit) { transition: transform 0.15s; }
 .organ.grab { filter: drop-shadow(0 0 10px #ffb59a); }
+/* тёмная кайма вокруг картинки органа: на золотых телах гибридов он иначе сливается с корпусом */
+.organ .sprite { filter: drop-shadow(0 0 2px rgba(8, 3, 4, 0.95)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.8)); }
 .organ.toggle { cursor: pointer; }
 .organ.toggle.on { filter: drop-shadow(0 0 12px #e0453a); }
 .ticks { transform-box: fill-box; transform-origin: center; animation: spin linear infinite; animation-duration: 0s; }

@@ -1,6 +1,6 @@
 import { BugEngine } from "./engine.js";
 import { NATURAL_BUGS, makeHybrid, fillGenome } from "./genome.js";
-import { createBugView, renderHero, baseStage } from "./hero.js";
+import { createBugView, renderHero, baseStage, HYBRID_COUNT } from "./hero.js";
 import { createOrgans, ORGANS } from "./organs.js";
 
 const SEEN_KEY = "bugsynth.seenIntro";
@@ -72,11 +72,20 @@ function showPlaque(o, v, mode) {
 const toast = $("#toast");
 const allBugs = () => [...PARENTS, ...hybrids];
 
+// случайная особь из шести; пока есть неиспользованные, выбираем только из них
+function pickDesign(existing) {
+  const used = new Set(existing.map((h) => h.design));
+  const free = [];
+  for (let i = 1; i <= HYBRID_COUNT; i++) if (!used.has(i)) free.push(i);
+  const pool = free.length ? free : Array.from({ length: HYBRID_COUNT }, (_, i) => i + 1);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 // --- сохранение гибридов (если localStorage недоступен, просто не сохраняем) ---
 function loadHybrids() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return raw
+    const list = raw
       .filter(
         (h) =>
           h && h.id && h.genome && typeof h.genome === "object" && Array.isArray(h.samples) &&
@@ -84,6 +93,9 @@ function loadHybrids() {
       )
       .map((h) => ({ ...h, genome: fillGenome(h.genome) }))
       .slice(0, MAX_HYBRIDS);
+    // гибридам, сохранённым до появления нарисованных особей, назначаем особь случайно
+    for (const h of list) if (!(h.design >= 1 && h.design <= HYBRID_COUNT)) h.design = pickDesign(list);
+    return list;
   } catch (_) {
     return [];
   }
@@ -279,10 +291,8 @@ $("#breed").addEventListener("click", () => {
   }
   const nums = hybrids.map((h) => Number(h.id.replace("hyb-", "")) || 0);
   const child = makeHybrid(PARENTS[0], PARENTS[1], Math.max(0, ...nums) + 1);
-  // номер нарисованной особи: самый маленький свободный, чтобы у шести гибридов были шесть разных тел
-  const used = new Set(hybrids.map((h) => h.design));
-  child.design = 1;
-  while (used.has(child.design)) child.design++;
+  // какая из шести нарисованных особей достанется гибриду: случайная, пока есть неиспользованные, чтобы тела не повторялись
+  child.design = pickDesign(hybrids);
   hybrids.push(child);
   saveHybrids();
   mount(child);
