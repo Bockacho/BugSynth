@@ -1,5 +1,6 @@
 // Органы управления: ручки вшиты в тело жука. Тянешь орган вверх-вниз, значение меняется.
-// Каждый орган — картинка в четырёх состояниях (assets/organs/<id>-0…3.webp), они плавно перетекают по значению.
+// Каждый орган — картинка в четырёх состояниях (assets/organs/<id>-0…3.webp); видна всегда одна целая, ближайшая к значению
+// (полупрозрачное смешивание двух кадров давало мутное двойное изображение). Точное значение показывает шкала вокруг.
 // Состояние грузится, только когда становится видимым. Если картинка не загрузилась, рисуется заглушка кодом. «Зажим» переключается касанием.
 const NS = "http://www.w3.org/2000/svg";
 const SPRITE_BASE = "assets/organs/";
@@ -16,18 +17,21 @@ const GRADIENTS = `
 // name и hint показываются в плашках: при касании органа и на экране «Как играть».
 // Названия в виде «по-русски / English»: английские слова привычны музыкантам.
 export const ORGANS = [
-  { id: "pitch", name: "Питч / Pitch", hint: "Высота звука. Тяни вверх: выше, вниз: ниже.", anchor: "legL", r: 22, kind: "bronze" },
-  { id: "trill", name: "Стрекот / Tremolo", hint: "Дрожание громкости: от ровного звука до быстрого треска.", anchor: "legR", r: 22, kind: "olive" },
-  { id: "glide", name: "Скольжение / Glide", hint: "Как плавно высота доезжает до новой ноты.", anchor: "hindL", r: 22, kind: "bronze" },
-  { id: "scrub", name: "Позиция / Position", hint: "С какого места записи звучит жук. Внизу играет вся запись, выше берётся короткий кусок.", anchor: "hindR", r: 22, kind: "raw" },
-  { id: "filter", name: "Фильтр / Filter", hint: "Закрыт: звук глухой. Открыт: яркий.", anchor: "head", r: 22, kind: "mouth" },
-  { id: "env", name: "Огибающая / Envelope", hint: "Как быстро звук нарастает и затихает. Выше: медленнее и дольше.", anchor: "antenna", r: 20, kind: "mouth" },
-  { id: "dist", name: "Грязь / Distortion", hint: "Искажение. Чем выше, тем грязнее звук и тем сильнее мутирует тело.", anchor: "thorax", r: 24, kind: "raw" },
-  { id: "detune", name: "Второй жук / Detune", hint: "Расстройка: к звуку добавляются две копии, чуть выше и чуть ниже.", anchor: "flankL", r: 22, kind: "olive" },
-  { id: "latch", name: "Зажим / Hold", hint: "Нажми на глаз на правом крыле: звук держится без пальца. Нажми на тело ещё раз: тишина.", anchor: "flankR", r: 20, kind: "eye", toggle: true },
-  { id: "reverb", name: "Реверб / Reverb", hint: "Звук растягивается в пространство. Брюхо набухает.", anchor: "belly", r: 28, kind: "sac" },
-  { id: "delay", name: "Повтор / Delay", hint: "Звук повторяется с затуханием, как эхо.", anchor: "tail", r: 22, kind: "sac" },
+  { id: "pitch", name: "Питч / Pitch", hint: "Высота звука. Тяни вверх: выше, вниз: ниже.", anchor: "legL", r: 29, kind: "bronze" },
+  { id: "trill", name: "Стрекот / Tremolo", hint: "Дрожание громкости: от ровного звука до быстрого треска.", anchor: "legR", r: 29, kind: "olive" },
+  { id: "glide", name: "Скольжение / Glide", hint: "Как плавно высота доезжает до новой ноты.", anchor: "hindL", r: 29, kind: "bronze" },
+  { id: "scrub", name: "Позиция / Position", hint: "С какого места записи звучит жук. Внизу играет вся запись, выше берётся короткий кусок.", anchor: "hindR", r: 29, kind: "raw" },
+  { id: "filter", name: "Фильтр / Filter", hint: "Закрыт: звук глухой. Открыт: яркий.", anchor: "head", r: 29, kind: "mouth" },
+  { id: "env", name: "Огибающая / Envelope", hint: "Как быстро звук нарастает и затихает. Выше: медленнее и дольше.", anchor: "antenna", r: 26, kind: "mouth" },
+  { id: "dist", name: "Грязь / Distortion", hint: "Искажение. Чем выше, тем грязнее звук и тем сильнее мутирует тело.", anchor: "thorax", r: 30, kind: "raw" },
+  { id: "detune", name: "Второй жук / Detune", hint: "Расстройка: к звуку добавляются две копии, чуть выше и чуть ниже.", anchor: "flankL", r: 26, kind: "olive" },
+  { id: "latch", name: "Зажим / Hold", hint: "Нажми на глаз на правом крыле: звук держится без пальца. Нажми на тело ещё раз: тишина.", anchor: "flankR", r: 26, kind: "eye", toggle: true },
+  { id: "reverb", name: "Реверб / Reverb", hint: "Звук растягивается в пространство. Брюхо набухает.", anchor: "belly", r: 34, kind: "sac" },
+  { id: "delay", name: "Повтор / Delay", hint: "Звук повторяется с затуханием, как эхо.", anchor: "tail", r: 29, kind: "sac" },
 ];
+
+// радиус шкалы: снаружи картинки органа, чтобы не лежать поверх неё
+const ARC = 1.34;
 
 function arc(r, t) {
   // дуга от −135° до +135° (270° шкалы), t 0..1
@@ -81,8 +85,13 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
       `<g class="sprite">${[0, 1, 2, 3]
         .map((i) => `<image data-href="${SPRITE_BASE}${o.id}-${i}.webp" x="${-size / 2}" y="${-size / 2}" width="${size}" height="${size}" opacity="0"/>`)
         .join("")}</g>` +
+      // шкала крутилки: тёмная дорожка на весь ход и светлая дуга значения поверх
+      (o.toggle
+        ? ""
+        : `<path class="track" fill="none" stroke="#0d0506" stroke-opacity=".78" stroke-width="7" stroke-linecap="round" d="${arc(o.r * ARC, 1)}"/>` +
+          `<path class="track-edge" fill="none" stroke="#d9a07a" stroke-opacity=".28" stroke-width="1" stroke-linecap="round" d="${arc(o.r * ARC + 3.6, 1)}"/>`) +
       `<path class="arc" fill="none" stroke="#ffd9bc" stroke-width="4.5" stroke-linecap="round" d=""/>` +
-      `<circle class="hit" r="${o.r * 1.45}" fill="transparent"/>`;
+      `<circle class="hit" r="${o.r * 1.6}" fill="transparent"/>`;
     organs.appendChild(g);
     state[o.id] = 0;
     const ph = g.querySelector(".ph");
@@ -109,14 +118,13 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
       state[o.id] = v;
       if (o.toggle) g.classList.toggle("on", v > 0.5);
       // шкала вокруг крутилки обновляется всегда, с картинкой органа или без
-      arcEl.setAttribute("d", o.toggle ? "" : arc(o.r * 1.12, v));
+      arcEl.setAttribute("d", o.toggle ? "" : arc(o.r * ARC, v));
       if (!broken) {
-        // четыре состояния: соседние смешиваются по значению
-        const f = v * 3;
+        // видна одна целая картинка: ближайшее из четырёх состояний
+        const shown = Math.round(v * 3);
         frames.forEach((im, i) => {
-          const w = Math.max(0, 1 - Math.abs(f - i));
-          im.setAttribute("opacity", String(w));
-          if (w > 0 && !im.hasAttribute("href")) im.setAttribute("href", im.dataset.href);
+          im.setAttribute("opacity", i === shown ? "1" : "0");
+          if (i === shown && !im.hasAttribute("href")) im.setAttribute("href", im.dataset.href);
         });
         return;
       }
@@ -187,5 +195,17 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
     g.addEventListener("lostpointercapture", end);
   }
 
-  return { set: (id, v) => ui[id]?.(v) };
+  // «тело просыпается»: органы по очереди вздрагивают и вспыхивают, чтобы было видно, что их можно трогать
+  const wake = () => {
+    [...organs.querySelectorAll(".organ")].forEach((g, i) => {
+      g.style.setProperty("--d", `${i * 110}ms`);
+      g.classList.remove("wake");
+      void g.getBBox();
+      g.classList.add("wake");
+    });
+  };
+  // пока не прочитана вводная карточка, зажим подсвечен
+  const hint = (on) => organs.querySelector(".organ.toggle")?.classList.toggle("hint", on);
+
+  return { set: (id, v) => ui[id]?.(v), wake, hint };
 }

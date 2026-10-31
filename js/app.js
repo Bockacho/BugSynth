@@ -47,6 +47,9 @@ if (introSeen) intro.hidden = true;
 function dismissIntro() {
   if (intro.hidden || intro.classList.contains("gone")) return;
   intro.classList.add("gone");
+  // гасим подсказки на теле: свечение области нажатия и подсветку зажима
+  document.querySelector(".body-glow")?.classList.add("gone");
+  organs?.hint(false);
   setTimeout(() => (intro.hidden = true), 500);
   try {
     localStorage.setItem(SEEN_KEY, "1");
@@ -238,6 +241,17 @@ function mount(bug) {
   zone.setAttribute("ry", zry);
   zone.setAttribute("fill", "transparent");
   view.organs.insertBefore(zone, view.organs.firstChild);
+  // пока вводная карточка не прочитана: тело мягко светится там, куда нажимать
+  const introOn = !intro.hidden && !intro.classList.contains("gone");
+  if (introOn) {
+    const glow = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    glow.setAttribute("class", "body-glow");
+    glow.innerHTML =
+      `<defs><radialGradient id="bodyglow"><stop offset="0" stop-color="#ffd2a0" stop-opacity=".75"/>` +
+      `<stop offset=".65" stop-color="#ff9a6a" stop-opacity=".35"/><stop offset="1" stop-color="#ff9a6a" stop-opacity="0"/></radialGradient></defs>` +
+      `<ellipse cx="${zx}" cy="${zy}" rx="${zrx}" ry="${zry}" fill="url(#bodyglow)"/>`;
+    view.organs.insertBefore(glow, zone);
+  }
   zone.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     try { zone.setPointerCapture(e.pointerId); } catch (_) {}
@@ -258,6 +272,11 @@ function mount(bug) {
     if (id === "dist" || id === "reverb") applyVisual();
   }, showPlaque);
   for (const o of ORGANS) organs.set(o.id, o.id === "latch" ? (latched ? 1 : 0) : params[o.id]);
+  if (introOn) {
+    organs.hint(true);
+    // органы вздрагивают по очереди, когда тело уже на экране
+    setTimeout(() => organs?.wake(), 600);
+  }
   applyVisual();
   renderShelf();
 }
