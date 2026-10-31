@@ -74,7 +74,9 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
   const state = {};
   const ui = {};
 
-  for (const o of ORGANS) {
+  // размер органов на этом теле (anchors.scale), остальное как в ORGANS
+  for (const base of ORGANS) {
+    const o = { ...base, r: base.r * (anchors.scale || 1) };
     const [x, y] = anchors[o.anchor];
     const g = document.createElementNS(NS, "g");
     g.setAttribute("class", `organ organ-${o.kind}${o.toggle ? " toggle" : ""}`);
@@ -83,7 +85,7 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
     g.innerHTML =
       placeholder(o) +
       `<g class="sprite">${[0, 1, 2, 3]
-        .map((i) => `<image data-href="${SPRITE_BASE}${o.id}-${i}.webp" x="${-size / 2}" y="${-size / 2}" width="${size}" height="${size}" opacity="0"/>`)
+        .map((i) => `<image data-href="${SPRITE_BASE}${o.id}-${i}.webp" x="${-size / 2}" y="${-size / 2}" width="${size}" height="${size}" style="opacity:0"/>`)
         .join("")}</g>` +
       // шкала крутилки: тёмная дорожка на весь ход и светлая дуга значения поверх
       (o.toggle
@@ -123,8 +125,9 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
         // видна одна целая картинка: ближайшее из четырёх состояний
         const shown = Math.round(v * 3);
         frames.forEach((im, i) => {
-          im.setAttribute("opacity", i === shown ? "1" : "0");
-          if (i === shown && !im.hasAttribute("href")) im.setAttribute("href", im.dataset.href);
+          im.style.opacity = i === shown ? "1" : "0";
+          // показанный кадр и соседние грузим заранее, чтобы при повороте следующий не мигал пустотой
+          if (Math.abs(i - shown) <= 1 && !im.hasAttribute("href")) im.setAttribute("href", im.dataset.href);
         });
         return;
       }
