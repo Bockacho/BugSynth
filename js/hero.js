@@ -9,14 +9,14 @@ const H = 600;
 // Места на теле (в координатах холста 640×600), где сидят органы управления. Подобраны по картинкам.
 const ANCHORS = {
   longhorn: {
-    head: [322, 142], thorax: [322, 196], belly: [322, 405], tail: [322, 505], antenna: [374, 58],
-    legL: [196, 240], legR: [434, 240], hindL: [208, 382], hindR: [437, 378], flankL: [286, 300], flankR: [358, 300],
-    body: [322, 310, 230, 290],
+    head: [318, 140], thorax: [318, 200], belly: [318, 400], tail: [318, 505], antenna: [395, 86],
+    legL: [205, 262], legR: [425, 258], hindL: [215, 372], hindR: [415, 370], flankL: [290, 300], flankR: [346, 300],
+    body: [318, 320, 150, 260],
   },
   cicada: {
-    head: [322, 142], thorax: [322, 205], belly: [322, 420], tail: [322, 505], antenna: [382, 44],
-    legL: [162, 172], legR: [482, 172], hindL: [150, 300], hindR: [492, 300], flankL: [258, 330], flankR: [386, 330],
-    body: [322, 320, 250, 290],
+    head: [318, 145], thorax: [318, 212], belly: [318, 420], tail: [318, 505], antenna: [430, 105],
+    legL: [190, 238], legR: [470, 230], hindL: [190, 330], hindR: [490, 330], flankL: [255, 330], flankR: [385, 330],
+    body: [318, 330, 170, 255],
   },
 };
 
@@ -68,8 +68,15 @@ function speciesOf(bug) {
   return [list[0], list[0]];
 }
 
+// Адрес картинки лежит в data-href и переносится в href, только когда стадия становится видимой:
+// при открытии страницы грузится одна стадия, остальные по мере поворота ручки «грязь».
 const img = (sp, stage, suf = "") =>
-  `<image href="assets/bugs/${sp}-${stage}${suf}.webp" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet"/>`;
+  `<image data-href="assets/bugs/${sp}-${stage}${suf}.webp" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet"/>`;
+function reveal(group) {
+  for (const im of group.querySelectorAll("image[data-href]")) {
+    if (!im.hasAttribute("href")) im.setAttribute("href", im.dataset.href);
+  }
+}
 
 // Один слой-стадия: одна картинка. Раньше гибрид склеивался из двух половин с размытым краем, и получались
 // призрачные двойные экспозиции; настоящие гибриды должны быть нарисованы целиком.
@@ -112,27 +119,42 @@ export function createBugView(bug) {
   const weight = (i) => String(Math.max(0, 1 - Math.abs(stageF - i)));
   const setStage = (f) => {
     stageF = f;
-    layers.forEach((g, i) => (g.style.opacity = weight(i)));
-    strainLayers.forEach((g, i) => (g.style.opacity = weight(i)));
+    for (const list of [layers, strainLayers]) {
+      list.forEach((g, i) => {
+        const w = weight(i);
+        g.style.opacity = w;
+        if (w !== "0") reveal(g);
+      });
+    }
   };
   setStage(stageF);
-  // «напряжённая» поза (assets/bugs/<вид>-<стадия>-strain.webp): если нарисована, тело перетекает в неё в такт звуку
+  // «напряжённая» поза (assets/bugs/<вид>-<стадия>-strain.webp): если нарисована, тело перетекает в неё в такт звуку.
+  // Картинки позы грузятся только когда жук впервые зазвучал, чтобы не тянуть их при открытии страницы.
   const strain = svg.querySelector(".strain");
-  Promise.all([...new Set(sp)].map(probeStrain)).then((oks) => {
-    if (!oks.every(Boolean)) return;
-    strain.innerHTML = STAGES.map((_, i) => `<g class="stage">${stageGroup(bug, sp, i, `${id}p${i}`, "-strain")}</g>`).join("");
-    strainLayers = [...strain.querySelectorAll(".stage")];
-    setStage(stageF);
-  });
-  const setStrain = (a) => strain.setAttribute("opacity", a.toFixed(3));
+  let strainRequested = false;
+  const loadStrain = () => {
+    strainRequested = true;
+    Promise.all([...new Set(sp)].map(probeStrain)).then((oks) => {
+      if (!oks.every(Boolean) || !strain.isConnected) return;
+      strain.innerHTML = STAGES.map((_, i) => `<g class="stage">${stageGroup(bug, sp, i, `${id}p${i}`, "-strain")}</g>`).join("");
+      strainLayers = [...strain.querySelectorAll(".stage")];
+      setStage(stageF);
+    });
+  };
+  let lastStrain = -1;
+  const setStrain = (a) => {
+    if (a > 0.01 && !strainRequested) loadStrain();
+    const v = Math.round(a * 1000) / 1000;
+    if (v === lastStrain) return;
+    lastStrain = v;
+    strain.setAttribute("opacity", String(v));
+  };
   return { svg, setStage, setStrain, anchors: anchorsOf(bug), organs: svg.querySelector(".organs"), W, H };
 }
 
-// Статичная картинка для маленьких значков (стадия по умолчанию).
+// Миниатюра для лотка: готовая маленькая картинка (assets/bugs/thumb/), стадия по умолчанию.
 export function renderHero(bug) {
   const sp = speciesOf(bug);
   if (!sp) return null;
-  const id = `t${++counter}`;
-  const st = Math.round(baseStage(bug));
-  return `<svg class="bug-svg hero" viewBox="0 0 ${W} ${H}" role="img" aria-label="Жук" xmlns="http://www.w3.org/2000/svg"><g class="flesh">${stageGroup(bug, sp, st, id)}</g></svg>`;
+  return `<img src="assets/bugs/thumb/${sp[0]}-${STAGES[baseStage(bug)]}.webp" alt="" width="112" height="105" decoding="async">`;
 }

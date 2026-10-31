@@ -20,6 +20,8 @@ let hybrids = loadHybrids();
 let active = PARENTS[0];
 let view = null;
 let organs = null;
+let randomAnim = 0; // анимация кнопки «рандом»
+let randomTo = null; // куда сейчас едут ручки
 // зажим у каждого жука свой: включил на одном, на других остаётся как было
 const latchedBy = new Map();
 let latched = false;
@@ -210,6 +212,8 @@ function release() {
 }
 
 function mount(bug) {
+  cancelAnimationFrame(randomAnim);
+  randomTo = null;
   engine?.stop();
   held = 0;
   // при смене жука ручки возвращаются в исходное положение
@@ -302,6 +306,43 @@ $("#breed").addEventListener("click", () => {
   say(`Выведен ${child.code}: новое тело и новый звук.`);
 });
 
+// --- рандом: все ручки текущего жука на случайные места (зажим не трогаем: это режим, а не звук) ---
+// true, когда будет нарисован значок assets/organs/ui-random.webp (до тех пор кнопка подписана текстом)
+const RANDOM_ICON = false;
+if (RANDOM_ICON) $("#random").innerHTML = `<img src="assets/organs/ui-random.webp" alt="">`;
+const RANDOM_RANGE = { filter: [0.3, 1], env: [0, 0.75] }; // совсем закрытый фильтр и очень медленная атака дают тишину
+function randomize() {
+  cancelAnimationFrame(randomAnim);
+  const from = { ...params };
+  const to = {};
+  for (const k of Object.keys(DEFAULTS)) {
+    const [lo, hi] = RANDOM_RANGE[k] || [0, 1];
+    to[k] = lo + Math.random() * (hi - lo);
+  }
+  // ручки доезжают до новых мест за треть секунды, а не прыгают
+  const t0 = performance.now();
+  const step = (now) => {
+    if (randomTo !== to) return; // уже запущен следующий рандом или сменили жука
+    const t = Math.min(1, (now - t0) / 320);
+    const e = t * (2 - t);
+    for (const k of Object.keys(to)) {
+      params[k] = from[k] + (to[k] - from[k]) * e;
+      engine?.setParam(k, params[k]);
+      organs?.set(k, params[k]);
+    }
+    applyVisual();
+    if (t < 1) randomAnim = requestAnimationFrame(step);
+    else randomTo = null;
+  };
+  randomTo = to;
+  randomAnim = requestAnimationFrame(step);
+  // если вкладка в фоне, кадры анимации не приходят: ручки всё равно встают на места
+  setTimeout(() => step(t0 + 400), 400);
+  dismissIntro();
+  say("Рандом: все ручки на новых местах.");
+}
+$("#random").addEventListener("click", randomize);
+
 // сброс в два касания: первое предупреждает, второе (в течение 3 с) удаляет
 let resetArmed = 0;
 $("#reset").addEventListener("click", () => {
@@ -322,7 +363,7 @@ $("#reset").addEventListener("click", () => {
 const credits = $("#credits");
 // список органов на экране «Как играть»: настоящая картинка органа, название, что делает
 $("#organ-list").innerHTML = ORGANS.map(
-  (o) => `<li><img src="assets/organs/${o.id}-2.webp" alt=""><span><b>${o.name}.</b> ${o.hint}</span></li>`
+  (o) => `<li><img src="assets/organs/${o.id}-2.webp" alt="" loading="lazy" width="44" height="44"><span><b>${o.name}.</b> ${o.hint}</span></li>`
 ).join("");
 // закрытие по клику на пустую область вокруг окна, а не только по кнопке
 credits.addEventListener("click", (e) => {
@@ -352,9 +393,13 @@ addEventListener("keyup", (e) => {
   spaceDown = false;
   release();
 });
-// после клика кнопка лотка не держит фокус, иначе Enter и пробел снова её нажимают
-for (const b of document.querySelectorAll("#tray button")) b.addEventListener("click", () => b.blur());
+// после клика кнопка лотка (и значок жука, они пересоздаются) не держит фокус, иначе Enter и пробел снова её нажимают
+$("#tray").addEventListener("click", (e) => e.target.closest("button")?.blur());
+// ушли со страницы (свернули приложение, переключили вкладку): палец уже не на теле.
+// Без сброса счётчика следующее отпускание не глушило бы звук.
 addEventListener("blur", () => {
+  held = 0;
+  spaceDown = false;
   if (!latched) engine?.stop();
 });
 

@@ -1,6 +1,6 @@
 // Органы управления: ручки вшиты в тело жука. Тянешь орган вверх-вниз, значение меняется.
 // Каждый орган — картинка в четырёх состояниях (assets/organs/<id>-0…3.webp), они плавно перетекают по значению.
-// Пока картинок нет, рисуется временная заглушка кодом. «Зажим» переключается касанием.
+// Состояние грузится, только когда становится видимым. Если картинка не загрузилась, рисуется заглушка кодом. «Зажим» переключается касанием.
 const NS = "http://www.w3.org/2000/svg";
 const SPRITE_BASE = "assets/organs/";
 
@@ -28,22 +28,6 @@ export const ORGANS = [
   { id: "reverb", name: "Реверб / Reverb", hint: "Звук растягивается в пространство. Брюхо набухает.", anchor: "belly", r: 28, kind: "sac" },
   { id: "delay", name: "Повтор / Delay", hint: "Звук повторяется с затуханием, как эхо.", anchor: "tail", r: 22, kind: "sac" },
 ];
-
-// Какие органы уже нарисованы: проверяем, грузится ли первая и последняя картинка состояний.
-const spriteOk = new Map();
-function probe(id) {
-  if (!spriteOk.has(id)) {
-    const load = (n) =>
-      new Promise((res) => {
-        const im = new Image();
-        im.onload = () => res(true);
-        im.onerror = () => res(false);
-        im.src = `${SPRITE_BASE}${id}-${n}.webp`;
-      });
-    spriteOk.set(id, Promise.all([load(0), load(3)]).then(([a, b]) => a && b));
-  }
-  return spriteOk.get(id);
-}
 
 function arc(r, t) {
   // дуга от −135° до +135° (270° шкалы), t 0..1
@@ -94,7 +78,9 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
     const size = o.r * 2.8;
     g.innerHTML =
       placeholder(o) +
-      `<g class="sprite" hidden></g>` +
+      `<g class="sprite">${[0, 1, 2, 3]
+        .map((i) => `<image data-href="${SPRITE_BASE}${o.id}-${i}.webp" x="${-size / 2}" y="${-size / 2}" width="${size}" height="${size}" opacity="0"/>`)
+        .join("")}</g>` +
       `<path class="arc" fill="none" stroke="#ffd9bc" stroke-width="4.5" stroke-linecap="round" d=""/>` +
       `<circle class="hit" r="${o.r * 1.45}" fill="transparent"/>`;
     organs.appendChild(g);
@@ -106,17 +92,32 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
       needle: g.querySelector(".needle"), ticks: g.querySelector(".ticks"), mouth: g.querySelector(".mouth"),
       slit: g.querySelector(".slit"), bulb: g.querySelector(".bulb"), lid: g.querySelector(".lid"),
     };
-    let frames = null;
+    const frames = [...sprite.querySelectorAll("image")];
+    // заглушка видна, только если картинка органа не загрузилась
+    ph.style.display = "none";
+    let broken = false;
+    for (const im of frames) {
+      im.addEventListener("error", () => {
+        sprite.style.display = "none";
+        ph.style.display = "";
+        broken = true;
+        set(state[o.id]);
+      });
+    }
 
     const set = (v) => {
       state[o.id] = v;
       if (o.toggle) g.classList.toggle("on", v > 0.5);
       // шкала вокруг крутилки обновляется всегда, с картинкой органа или без
       arcEl.setAttribute("d", o.toggle ? "" : arc(o.r * 1.12, v));
-      if (frames) {
+      if (!broken) {
         // четыре состояния: соседние смешиваются по значению
         const f = v * 3;
-        frames.forEach((im, i) => im.setAttribute("opacity", String(Math.max(0, 1 - Math.abs(f - i)))));
+        frames.forEach((im, i) => {
+          const w = Math.max(0, 1 - Math.abs(f - i));
+          im.setAttribute("opacity", String(w));
+          if (w > 0 && !im.hasAttribute("href")) im.setAttribute("href", im.dataset.href);
+        });
         return;
       }
       if (parts.needle) parts.needle.setAttribute("transform", `rotate(${(v - 0.5) * 270})`);
@@ -135,16 +136,6 @@ export function createOrgans(view, onChange, onInfo = () => {}) {
     };
     ui[o.id] = set;
 
-    probe(o.id).then((ok) => {
-      if (!ok) return;
-      sprite.innerHTML = [0, 1, 2, 3]
-        .map((i) => `<image href="${SPRITE_BASE}${o.id}-${i}.webp" x="${-size / 2}" y="${-size / 2}" width="${size}" height="${size}" opacity="0"/>`)
-        .join("");
-      frames = [...sprite.querySelectorAll("image")];
-      sprite.removeAttribute("hidden");
-      ph.style.display = "none"; // атрибут hidden на SVG-элементах не работает
-      set(state[o.id]);
-    });
 
     // подсказка: на компьютере при наведении, на телефоне при касании
     g.addEventListener("pointerenter", (e) => {
